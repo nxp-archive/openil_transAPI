@@ -1,0 +1,102 @@
+module: ietf-interfaces
+  +--rw interfaces
+  |  +--rw interface* [name]
+  |     +--rw name                                   string
+  |     +--rw description?                           string
+  |     +--rw type                                   identityref
+  |     +--rw enabled?                               boolean
+  |     +--rw link-up-down-trap-enable?              enumeration {if-mib}?
+  |     +--rw preempt:frame-preemption-parameters {frame-preemption}?
+  |     |  +--rw preempt:frame-preemption-status-table* [traffic-class]
+  |     |  |  +--rw preempt:traffic-class              dot1q-types:traffic-class-type
+  |     |  |  +--rw preempt:frame-preemption-status?   enumeration
+  |     |  +--ro preempt:hold-advance?                    uint32
+  |     |  +--ro preempt:release-advance?                 uint32
+  |     |  +--ro preempt:preemption-active?               boolean
+  |     |  +--ro preempt:hold-request?                    enumeration
+  |     +--rw sched:max-sdu-table* [traffic-class] {scheduled-traffic}?
+  |     |  +--rw sched:traffic-class           dot1q-types:traffic-class-type
+  |     |  +--rw sched:queue-max-sdu?          uint32
+  |     |  +--ro sched:transmission-overrun?   yang:counter64
+  |     +--rw sched:gate-parameters {scheduled-traffic}?
+  |        +--rw sched:gate-enabled?                 boolean
+  |        +--rw sched:admin-gate-states?            uint8
+  |        +--ro sched:oper-gate-states?             uint8
+  |        +--rw sched:admin-control-list-length?    uint32
+  |        +--ro sched:oper-control-list-length?     uint32
+  |        +--rw sched:admin-control-list* [index]
+  |        |  +--rw sched:index             uint32
+  |        |  +--rw sched:operation-name    identityref
+  |        |  +--rw sched:sgs-params
+  |        |  |  +--rw sched:gate-states-value?     uint8
+  |        |  |  +--rw sched:time-interval-value?   uint32
+  |        |  +--rw sched:shm-params {preemption:frame-preemption}?
+  |        |  |  +--rw sched:gate-states-value?     uint8
+  |        |  |  +--rw sched:time-interval-value?   uint32
+  |        |  +--rw sched:srm-params {preemption:frame-preemption}?
+  |        |     +--rw sched:gate-states-value?     uint8
+  |        |     +--rw sched:time-interval-value?   uint32
+  |        +--ro sched:oper-control-list* [index]
+  |        |  +--ro sched:index             uint32
+  |        |  +--ro sched:operation-name    identityref
+  |        |  +--ro sched:sgs-params
+  |        |  |  +--ro sched:gate-states-value?     uint8
+  |        |  |  +--ro sched:time-interval-value?   uint32
+  |        |  +--ro sched:shm-params {preemption:frame-preemption}?
+  |        |  |  +--ro sched:gate-states-value?     uint8
+  |        |  |  +--ro sched:time-interval-value?   uint32
+  |        |  +--ro sched:srm-params {preemption:frame-preemption}?
+  |        |     +--ro sched:gate-states-value?     uint8
+  |        |     +--ro sched:time-interval-value?   uint32
+  |        +--rw sched:admin-cycle-time
+  |        |  +--rw sched:numerator?     uint32
+  |        |  +--rw sched:denominator?   uint32
+  |        +--ro sched:oper-cycle-time
+  |        |  +--ro sched:numerator?     uint32
+  |        |  +--ro sched:denominator?   uint32
+  |        +--rw sched:admin-cycle-time-extension?   uint32
+  |        +--ro sched:oper-cycle-time-extension?    uint32
+  |        +--rw sched:admin-base-time
+  |        |  +--rw sched:seconds?              uint64
+  |        |  +--rw sched:fractional-seconds?   uint64
+  |        +--ro sched:oper-base-time
+  |        |  +--ro sched:seconds?              uint64
+  |        |  +--ro sched:fractional-seconds?   uint64
+  |        +--rw sched:config-change?                boolean
+  |        +--ro sched:config-change-time
+  |        |  +--ro sched:seconds?              uint64
+  |        |  +--ro sched:fractional-seconds?   uint64
+  |        +--ro sched:tick-granularity?             uint32
+  |        +--ro sched:current-time
+  |        |  +--ro sched:seconds?              uint64
+  |        |  +--ro sched:fractional-seconds?   uint64
+  |        +--ro sched:config-pending?               boolean
+  |        +--ro sched:config-change-error?          yang:counter64
+  |        +--ro sched:supported-list-max?           uint32
+  +--ro interfaces-state
+     +--ro interface* [name]
+        +--ro name               string
+        +--ro type               identityref
+        +--ro admin-status       enumeration {if-mib}?
+        +--ro oper-status        enumeration
+        +--ro last-change?       yang:date-and-time
+        +--ro if-index           int32 {if-mib}?
+        +--ro phys-address?      yang:phys-address
+        +--ro higher-layer-if*   interface-state-ref
+        +--ro lower-layer-if*    interface-state-ref
+        +--ro speed?             yang:gauge64
+        +--ro statistics
+           +--ro discontinuity-time    yang:date-and-time
+           +--ro in-octets?            yang:counter64
+           +--ro in-unicast-pkts?      yang:counter64
+           +--ro in-broadcast-pkts?    yang:counter64
+           +--ro in-multicast-pkts?    yang:counter64
+           +--ro in-discards?          yang:counter32
+           +--ro in-errors?            yang:counter32
+           +--ro in-unknown-protos?    yang:counter32
+           +--ro out-octets?           yang:counter64
+           +--ro out-unicast-pkts?     yang:counter64
+           +--ro out-broadcast-pkts?   yang:counter64
+           +--ro out-multicast-pkts?   yang:counter64
+           +--ro out-discards?         yang:counter32
+           +--ro out-errors?           yang:counter32
