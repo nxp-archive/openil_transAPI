@@ -527,9 +527,9 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			if (strcmp(ele_val, "set-gate-and-ipv")) {
+			if (strstr(ele_val, "set-gate-and-ipv") == NULL) {
 				sprintf(err_msg,
-					"'%s' must be 'set-gate-and-ipv'!",
+					"'%s' must be 'psfp:set-gate-and-ipv'",
 					content);
 				rc = EXIT_FAILURE;
 				goto out;

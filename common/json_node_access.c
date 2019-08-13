@@ -14,12 +14,13 @@
 #include <semaphore.h>
 #include <cjson/cJSON.h>
 
-int get_list_item(const cJSON *object, const char *name, int index, cJSON *ele)
+cJSON *get_list_item(const cJSON *object, const char *name, int index)
 {
 	int cnt = 0;
+	cJSON *ele;
 
 	if ((object == NULL) || (name == NULL))
-		return -1;
+		return NULL;
 
 	for (ele = object->child; ele != NULL; ele = ele->next) {
 		if (!strcmp(name, ele->string)) {
@@ -30,8 +31,8 @@ int get_list_item(const cJSON *object, const char *name, int index, cJSON *ele)
 	}
 
 	if ((ele == NULL) || (ele->string == NULL))
-		return -1;
+		return NULL;
 
-	return 0;
+	return ele;
 }
 

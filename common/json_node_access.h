@@ -8,6 +8,6 @@
 #ifndef __JSON_NODE_ACCESS_H__
 #define __JSON_NODE_ACCESS_H__
 
-int get_list_item(const cJSON *object, const char *name, int index, cJSON *ele);
+cJSON *get_list_item(const cJSON *object, const char *name, int index);
 
 #endif

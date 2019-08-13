@@ -70,6 +70,8 @@ int qbv_parse_admin_cycle_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 	int rc = EXIT_SUCCESS;
 	char *content;
 	char ele_val[MAX_ELEMENT_LENGTH];
+	uint64_t num = 0;
+	uint64_t den = 1;
 
 	nc_verb_verbose("%s is called", __func__);
 
@@ -83,48 +85,25 @@ int qbv_parse_admin_cycle_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+			num = strtoul(ele_val, NULL, 0);
 		} else if (strcmp(content, "denominator") == 0) {
 			rc = xml_read_field(node, "denominator",
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+			den = strtoul(ele_val, NULL, 0);
+			if (!den) {
+				nc_verb_verbose("Invalid '%s' in '%s'",
+						content, node_path);
+			}
 		}
 	}
+	admin_conf->qbv_conf.admin.cycle_time = (int)((num * 1000000000)/den);
+	nc_verb_verbose("admin cycle_time is :%ld",
+			admin_conf->qbv_conf.admin.cycle_time);
 out:
 	return rc;
 }
-
-
-int qbv_parse_ct_ext(xmlNode *node, struct std_qbv_conf *admin_conf,
-	char *err_msg, char *node_path)
-{
-	int rc = EXIT_SUCCESS;
-	char *content;
-	uint64_t tmp;
-	char ele_val[MAX_ELEMENT_LENGTH];
-
-	nc_verb_verbose("%s is called", __func__);
-
-	for (node = node->children; node != NULL; node = node->next) {
-		if (node->type != XML_ELEMENT_NODE)
-			continue;
-
-		content = (char *)node->name;
-		if (strcmp(content, "admin-cycle-time-extension") != 0)
-			continue;
-
-		rc = xml_read_field(node, "admin-cycle-time-extension",
-				    ele_val, err_msg, node_path);
-		if (rc != EXIT_SUCCESS)
-			goto out;
-
-		tmp = strtoul(ele_val, NULL, 0);
-		admin_conf->qbv_conf.admin.cycle_time_extension = (uint32_t) tmp;
-	}
-out:
-	return rc;
-}
-
 
 int qbv_parse_admin_base_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 	char *err_msg, char *node_path)
@@ -178,6 +157,7 @@ int qbv_parse_admin_base_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 	}
 	admin_conf->qbv_conf.admin.base_time = admin_base_time.nano_seconds + \
 		(admin_base_time.seconds*1000000000);
+	nc_verb_verbose("base time is %lu", admin_conf->qbv_conf.admin.base_time);
 out:
 	return rc;
 }
@@ -219,10 +199,23 @@ int qbv_parse_admin_control_list(xmlNode *node, struct std_qbv_conf *admin_conf,
 				goto out;
 			}
 		} else if (strcmp(content, "operation-name") == 0) {
-			rc = xml_read_field(tmp_node, "operation-name",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+
+			if (strstr(ele_val, "set-gate-states")) {
+				continue;
+			} else if (strstr(ele_val, "set-and-hold-mac")){
+				continue;
+			} else if (strstr(ele_val, "set-and-release-mac")){
+				continue;
+			} else {
+				sprintf(err_msg, "unknown '%s' in '%s'",
+					ele_val, node_path);
+				rc = EXIT_FAILURE;
+				goto out;
+			}
 		} else if (strcmp(content, "sgs-params") == 0) {
 			rc = parse_sgs_params(tmp_node, admin_conf,
 					      list_index, err_msg, node_path);
@@ -322,8 +315,7 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 				tmp = strtoul(ele_val, NULL, 0);
 			admin_conf->qbv_conf.admin.gate_states = (uint8_t) tmp;
 		} else if (strcmp(content, "admin-control-list-length") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "admin-control-list-length",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -337,11 +329,12 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		} else if (strcmp(content, "admin-cycle-time-extension") == 0) {
-			strcat(node_path, "/admin-cycle-time-extension");
-			rc = qbv_parse_ct_ext(tmp_node, admin_conf,
-					      err_msg, node_path);
+			rc = xml_read_field(tmp_node, content,
+					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+			tmp = strtoul(ele_val, NULL, 0);
+			admin_conf->qbv_conf.admin.cycle_time_extension = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-base-time") == 0) {
 			strcat(node_path, "/admin-base-time");
 			rc = qbv_parse_admin_base_time(tmp_node, admin_conf,
@@ -488,7 +481,8 @@ int probe_qbv_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 				BAD_CAST temp);
 	}
 	for (i = 0; i < list_cnt; i++) {
-		if (get_list_item(oper, "list", i, list) < 0)
+		list = get_list_item(oper, "list", i);
+		if (list == NULL )
 			goto out;
 
 		list_node = xmlNewChild(oper_node, NULL,
