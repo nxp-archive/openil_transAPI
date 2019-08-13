@@ -52,20 +52,6 @@ struct std_qci_conf {
 	struct std_qci_psfp_fmi_table *fmi_table;
 };
 
-struct std_cb_stream {
-	uint32_t index;
-	bool enable;
-	struct tsn_cb_streamid cbconf;
-};
-struct std_cb_stream_table {
-	struct std_cb_stream *stream_ptr;
-	struct std_cb_stream_table *next;
-};
-struct std_cb_conf {
-	char device_name[MAX_IF_NAME_LENGTH];
-	struct std_cb_stream_table *stream_table;
-};
-
 int get_qci_status(char *port, xmlNodePtr node);
 int parse_stream_filters(xmlNode *node, struct std_qci_conf *qci_conf,
 				   char *err_msg, char *node_path);

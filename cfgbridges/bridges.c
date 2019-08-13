@@ -17,6 +17,7 @@
 #include "platform.h"
 #include "bridges.h"
 #include "parse_qci_node.h"
+#include "parse_cb_node.h"
 #include "xml_node_access.h"
 
 /* transAPI version which must be compatible with libnetconf */
@@ -234,6 +235,7 @@ struct ns_pair namespace_mapping[] = {
 	{PSFP_PREFIX, PSFP_NS},
 	{SFSG_PREFIX, SFSG_NS},
 	{IANAIF_PREFIX, IANAIF_NS},
+	{CB_PREFIX, CB_NS},
 	{NULL, NULL}
 };
 
@@ -295,7 +297,18 @@ int callback_bridge_stream_filters(__attribute__((unused)) void **data,
 
 	return rc;
 }
+int callback_bridge_stream_id(__attribute__((unused)) void **data,
+		__attribute__((unused)) XMLDIFF_OP op,
+		__attribute__((unused)) xmlNodePtr old_node,
+		__attribute__((unused)) xmlNodePtr new_node,
+		__attribute__((unused)) struct nc_err **error)
+{
+	int rc = EXIT_SUCCESS;
 
+	bridge_cfg_change_ind |= CB_MASK;
+
+	return rc;
+}
 int callback_bridge(__attribute__((unused)) void **data,
 		__attribute__((unused)) XMLDIFF_OP op,
 		__attribute__((unused)) xmlNodePtr old_node,
@@ -425,6 +438,15 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 			goto out;
 		}
 	}
+
+	/* check cb stream filters identification configuration */
+	if (bridge_cfg_change_ind & CB_MASK) {
+		bridge_cfg_change_ind &= ~CB_MASK;
+		sub_node = get_child_node(node, "streams");
+		rc = cbstreamid_handle(name, sub_node, err_msg, path, disable);
+		if (rc != EXIT_SUCCESS)
+			goto out;
+	}
 out:
 	if (rc != EXIT_SUCCESS) {
 		*error = nc_err_new(NC_ERR_OP_FAILED);
@@ -443,7 +465,7 @@ out:
  * DO NOT alter this structure
  */
 struct transapi_data_callbacks clbks =  {
-	.callbacks_count = 42,
+	.callbacks_count = 76,
 	.data = NULL,
 	.callbacks = {
 		{.path = "/dot1q:bridges/dot1q:bridge",
@@ -465,8 +487,6 @@ struct transapi_data_callbacks clbks =  {
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:filter-specification-list",
 			.func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:filter-specification-list/sfsg:index",
-			.func = callback_bridge_stream_filters},
-		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:filter-specification-list/sfsg:maximum-sdu-size",
 			.func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:filter-specification-list/sfsg:maximum-sdu-size",
 			.func = callback_bridge_stream_filters},
@@ -521,6 +541,76 @@ struct transapi_data_callbacks clbks =  {
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:mark-all-frames-red-enable", .func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:mark-all-frames-red",
 			.func = callback_bridge_flow_meters},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:index",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:stream-handle",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:in-facing-output-port-list",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:out-facing-output-port-list",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:in-facing-input-port-list",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:out-facing-input-port-list",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:identification-type",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:lan-path-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:null-stream-identification-params/stream:dest-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:null-stream-identification-params/stream:vlan-tagged",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:null-stream-identification-params/stream:vlan-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:source-mac-and-vlan-identification-params/stream:source-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:source-mac-and-vlan-identification-params/stream:vlan-tagged",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:source-mac-and-vlan-identification-params/stream:vlan-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:down-dest-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:down-vlan-tagged",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:down-vlan-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:down-priority",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:up-dest-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:up-vlan-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:dest-mac-and-vlan-identification-params/stream:up-priority",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:vlan-id",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:dest-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:down-vlan-tagged",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:source-ip-address/stream:ip-version",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:source-ip-address/stream:ip-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:dest-ip-address/stream:ip-version",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:dest-ip-address/stream:ip-address",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:dscp",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:next-protocol",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:source-port",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:parameters/stream:ip-octuple-stream-identification-params/stream:dest-port",
+			.func = callback_bridge_stream_id},
 	}
 };
 
@@ -565,5 +655,3 @@ struct transapi_file_callbacks file_clbks = {
 	.callbacks = {
 	}
 };
-
-

@@ -162,7 +162,7 @@ module: ieee802-dot1q-bridge
            |  +--rw fid-to-mstid-allocation* [fids]
            |     +--rw fids     dot1qtypes:vid-range-type
            |     +--rw mstid?   dot1qtypes:mstid-type
-           +--rw sfsg:stream-filters	//augmented by qci models
+           +--rw sfsg:stream-filters   //augmented by qci models
            |  +--rw sfsg:stream-filter-instance-table* [stream-filter-instance-id]
            |  |  +--rw sfsg:stream-filter-instance-id    uint32
            |  |  +--rw (sfsg:stream-handle-spec)?
@@ -188,7 +188,7 @@ module: ieee802-dot1q-bridge
            |  |  +--ro psfp:passing-sdu-count?           yang:counter64
            |  |  +--ro psfp:not-passing-sdu-count?       yang:counter64
            |  +--ro sfsg:max-stream-filter-instances?    uint32
-           +--rw sfsg:stream-gates	//augmented by qci models
+           +--rw sfsg:stream-gates   //augmented by qci models
            |  +--rw sfsg:stream-gate-instance-table* [stream-gate-instance-id]
            |  |  +--rw sfsg:stream-gate-instance-id                   uint32
            |  |  +--rw sfsg:gate-enable?                              boolean
@@ -244,19 +244,61 @@ module: ieee802-dot1q-bridge
            |  |  +--rw psfp:gate-closed-due-octets-exceeded?          boolean
            |  +--ro sfsg:max-stream-gate-instances?    uint32
            |  +--ro psfp:supported-list-max?           uint32
-           +--rw psfp:flow-meters	//augmented by qci models
-              +--rw psfp:flow-meter-instance-table* [flow-meter-instance-id]
-              |  +--rw psfp:flow-meter-instance-id        uint32
-              |  +--rw psfp:committed-information-rate    uint64
-              |  +--rw psfp:committed-burst-size          uint32
-              |  +--rw psfp:excess-information-rate       uint64
-              |  +--rw psfp:excess-burst-size             uint32
-              |  +--rw psfp:coupling-flag                 enumeration
-              |  +--rw psfp:color-mode                    enumeration
-              |  +--rw psfp:drop-on-yellow                boolean
-              |  +--rw psfp:mark-all-frames-red-enable?   boolean
-              |  +--ro psfp:mark-all-frames-red?          boolean
-              +--ro psfp:max-flow-meter-instances?    uint32
+           +--rw psfp:flow-meters   //augmented by qci models
+           |  +--rw psfp:flow-meter-instance-table* [flow-meter-instance-id]
+           |  |  +--rw psfp:flow-meter-instance-id        uint32
+           |  |  +--rw psfp:committed-information-rate    uint64
+           |  |  +--rw psfp:committed-burst-size          uint32
+           |  |  +--rw psfp:excess-information-rate       uint64
+           |  |  +--rw psfp:excess-burst-size             uint32
+           |  |  +--rw psfp:coupling-flag                 enumeration
+           |  |  +--rw psfp:color-mode                    enumeration
+           |  |  +--rw psfp:drop-on-yellow                boolean
+           |  |  +--rw psfp:mark-all-frames-red-enable?   boolean
+           |  |  +--ro psfp:mark-all-frames-red?          boolean
+           |  +--ro psfp:max-flow-meter-instances?    uint32
+           +--rw stream-id:streams    //augmented by cb models
+              +--rw stream-id:stream-identity-table* [index]
+                 +--rw stream-id:index                          uint32
+                 +--rw stream-id:stream-handle                  uint32
+                 +--rw stream-id:in-facing-output-port-list?    uint32
+                 +--rw stream-id:out-facing-output-port-list?   uint32
+                 +--rw stream-id:in-facing-input-port-list?     uint32
+                 +--rw stream-id:out-facing-input-port-list?    uint32
+                 +--rw stream-id:identification-type?           enumeration
+                 +--ro stream-id:autoconfigured?                boolean
+                 +--rw stream-id:lan-path-id?                   uint32
+                 +--rw stream-id:parameters
+                    +--rw stream-id:null-stream-identification-params
+                    |  +--rw stream-id:dest-address    ieee:mac-address
+                    |  +--rw stream-id:vlan-tagged?    enumeration
+                    |  +--rw stream-id:vlan-id         uint16
+                    +--rw stream-id:source-mac-and-vlan-identification-params
+                    |  +--rw stream-id:source-address    ieee:mac-address
+                    |  +--rw stream-id:vlan-tagged       enumeration
+                    |  +--rw stream-id:vlan-id           uint16
+                    +--rw stream-id:dest-mac-and-vlan-identification-params
+                    |  +--rw stream-id:down-dest-address    ieee:mac-address
+                    |  +--rw stream-id:down-vlan-tagged     enumeration
+                    |  +--rw stream-id:down-vlan-id         uint16
+                    |  +--rw stream-id:down-priority        uint8
+                    |  +--rw stream-id:up-dest-address      ieee:mac-address
+                    |  +--rw stream-id:up-vlan-id           uint16
+                    |  +--rw stream-id:up-priority          uint8
+                    +--rw stream-id:ip-octuple-stream-identification-params
+                       +--rw stream-id:dest-address         ieee:mac-address
+                       +--rw stream-id:down-vlan-tagged     enumeration
+                       +--rw stream-id:vlan-id              uint16
+                       +--rw stream-id:source-ip-address
+                       |  +--rw stream-id:ip-version?   inet:ip-version
+                       |  +--rw stream-id:ip-address?   inet:ip-address
+                       +--rw stream-id:dest-ip-address
+                       |  +--rw stream-id:ip-version?   inet:ip-version
+                       |  +--rw stream-id:ip-address?   inet:ip-address
+                       +--rw stream-id:dscp?                inet:dscp
+                       +--rw stream-id:next-protocol?       enumeration
+                       +--rw stream-id:source-port?         uint16
+                       +--rw stream-id:dest-port?           uint16
 
   augment /if:interfaces/if:interface:
     +--rw bridge-port
