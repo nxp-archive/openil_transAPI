@@ -331,7 +331,6 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	xmlNodePtr sub_node = NULL;
 	xmlNodePtr name_node = NULL;
 	int rc = EXIT_SUCCESS;
-	struct std_qci_conf qci_conf;
 	char err_msg[MAX_ELEMENT_LENGTH];
 	int disable = 0;
 	char init_socket = 0;
@@ -364,79 +363,35 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* init socket */
 	genl_tsn_init();
 	init_socket = 1;
-	/* Init qci configuration data */
-	init_qci_memory(&qci_conf);
 
 	/* check qci stream filters configuration */
 	if (bridge_cfg_change_ind & QCI_SFI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SFI_MASK;
 		sub_node = get_child_node(node, "stream-filters");
-		rc = parse_stream_filters(sub_node, &qci_conf, err_msg, path);
+		rc = stream_filters_handle(name, sub_node,
+					   err_msg, path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;
-		if (disable)
-			qci_conf.sfi_table->sfi_ptr->enable = FALSE;
-
-		/* set new stream filters configuration */
-		rc = tsn_qci_psfp_sfi_set(name,
-					  qci_conf.sfi_table->sfi_ptr->stream_filter_instance_id,
-					  qci_conf.sfi_table->sfi_ptr->enable,
-					  &(qci_conf.sfi_table->sfi_ptr->sficonf));
-
-		if (rc < 0) {
-			sprintf(err_msg,
-				"failed to set stream filters instance, %s!",
-				strerror(-rc));
-			goto out;
-		}
 	}
 
 	/* check qci stream gates configuration */
 	if (bridge_cfg_change_ind & QCI_SGI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SGI_MASK;
 		sub_node = get_child_node(node, "stream-gates");
-		rc = parse_stream_gates(sub_node, &qci_conf, err_msg, path);
+		rc = stream_gates_handle(name, sub_node, err_msg,
+					 path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;
-		if (disable)
-			qci_conf.sfi_table->sfi_ptr->enable = FALSE;
-
-		/* set new stream gates configuration */
-		rc = tsn_qci_psfp_sgi_set(name,
-					  qci_conf.sgi_table->sgi_ptr->sgi_handle,
-					  qci_conf.sgi_table->sgi_ptr->enable,
-					  &(qci_conf.sgi_table->sgi_ptr->sgiconf));
-
-		if (rc < 0) {
-			sprintf(err_msg,
-				"failed to set stream gates instance, %s!",
-				strerror(-rc));
-			goto out;
-		}
 	}
 
 	/* check qci flow meters configuration */
 	if (bridge_cfg_change_ind & QCI_FMI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_FMI_MASK;
 		sub_node = get_child_node(node, "flow-meters");
-		rc = parse_flow_meters(sub_node, &qci_conf, err_msg, path);
+		rc = flowmeters_handle(name, sub_node, err_msg,
+				       path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;
-		if (disable)
-			qci_conf.fmi_table->fmi_ptr->enable = FALSE;
-
-		/* set new flow meters configuration */
-		rc = tsn_qci_psfp_fmi_set(name,
-					  qci_conf.fmi_table->fmi_ptr->fmi_id,
-					  qci_conf.fmi_table->fmi_ptr->enable,
-					  &(qci_conf.fmi_table->fmi_ptr->fmiconf));
-
-		if (rc < 0) {
-			sprintf(err_msg,
-				"failed to set flow meters instance, %s!",
-				strerror(-rc));
-			goto out;
-		}
 	}
 
 	/* check cb stream filters identification configuration */
@@ -454,7 +409,6 @@ out:
 	}
 	if (init_socket)
 		genl_tsn_close();
-	free_qci_memory(&qci_conf);
 	return rc;
 }
 

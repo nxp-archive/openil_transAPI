@@ -53,12 +53,10 @@ struct std_qci_conf {
 };
 
 int get_qci_status(char *port, xmlNodePtr node);
-int parse_stream_filters(xmlNode *node, struct std_qci_conf *qci_conf,
-				   char *err_msg, char *node_path);
-int parse_stream_gates(xmlNode *node, struct std_qci_conf *qci_conf,
-				char *err_msg, char *node_path);
-int parse_flow_meters(xmlNode *node, struct std_qci_conf *qci_conf,
-			       char *err_msg, char *node_path);
-void init_qci_memory(struct std_qci_conf *qci_conf);
-void free_qci_memory(struct std_qci_conf *qci_conf);
+int stream_filters_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable);
+int stream_gates_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable);
+int flowmeters_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable);
 #endif

@@ -160,7 +160,7 @@ void free_qci_memory(struct std_qci_conf *qci_conf)
 	qci_conf->fmi_table = NULL;
 }
 
-int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi_ptr,
+int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi,
 	char *err_msg, char *node_path)
 {
 	int rc = EXIT_SUCCESS;
@@ -178,32 +178,31 @@ int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi_ptr,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "maximum-sdu-size") == 0) {
-			rc = xml_read_field(tmp_node, "maximum-sdu-size",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 65536) {/* 2^16 */
-				cur_sfi_ptr->sficonf.stream_filter.maximum_sdu_size = (int32_t)tmp;
+			if (tmp >= 65536) {/* 2^16 */
+				rc = EXIT_FAILURE;
+				sprintf(err_msg,
+					"'%s' in '%s' is bigger than (2^16-1)!",
+					content, node_path);
 				goto out;
 			}
 
-			rc = EXIT_FAILURE;
-			sprintf(err_msg,
-				"'%s' in '%s' is bigger than (2^16-1)!",
-				content, node_path);
-			goto out;
+			cur_sfi->sficonf.stream_filter.maximum_sdu_size = (int32_t)tmp;
 		} else if (strcmp(content, "stream-blocked-due-to-oversize-frame-enabled") == 0) {
-			rc = xml_read_field(tmp_node, "stream-blocked-due-to-oversize-frame-enabled",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sfi_ptr->sficonf.block_oversize_enable = TRUE;
+				cur_sfi->sficonf.block_oversize_enable = TRUE;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sfi_ptr->sficonf.block_oversize_enable = FALSE;
+				cur_sfi->sficonf.block_oversize_enable = FALSE;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -216,17 +215,16 @@ int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi_ptr,
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 2147483648) {/* 2^31 */
-				cur_sfi_ptr->sficonf.stream_filter.flow_meter_instance_id = (int32_t)tmp;
-			} else {
+			if (tmp >= 2147483648) {/* 2^31 */
 				rc = EXIT_FAILURE;
 				sprintf(err_msg,
 					"'%s' in '%s' is bigger than (2^31-1)",
 					content, node_path);
 				goto out;
 			}
+			cur_sfi->sficonf.stream_filter.flow_meter_instance_id = (int32_t)tmp;
 		} else if (strcmp(content, "index") == 0) {
-			rc = xml_read_field(tmp_node, "index",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS) {
 				goto out;
@@ -252,7 +250,7 @@ int parse_stream_filter_table(xmlNode *node,
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
 	int stream_handle_spec = 0;
-	struct std_qci_psfp_sfi *cur_sfi_ptr = sfi_table->sfi_ptr;
+	struct std_qci_psfp_sfi *cur_sfi = sfi_table->sfi_ptr;
 
 	nc_verb_verbose("%s is called", __func__);
 	tmp_node = node;
@@ -273,50 +271,52 @@ int parse_stream_filter_table(xmlNode *node,
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
 			tmp = strtoul(ele_val, NULL, 0);
-			cur_sfi_ptr->stream_filter_instance_id = (uint8_t)tmp;
+			cur_sfi->stream_filter_instance_id = (uint8_t)tmp;
 		} else if (strcmp(content, "wildcard") == 0) {
 			stream_handle_spec++;
-			cur_sfi_ptr->sficonf.stream_handle_spec = -1;
+			cur_sfi->sficonf.stream_handle_spec = -1;
 		} else if (strcmp(content, "stream-handle") == 0) {
 			stream_handle_spec++;
-			rc = xml_read_field(tmp_node, "stream-handle",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 2147483648)/* 2^31 */
-				cur_sfi_ptr->sficonf.stream_handle_spec = (int32_t)(tmp);
+			if (tmp >= 2147483648) {/* 2^31 */
+				rc = EXIT_FAILURE;
+				sprintf(err_msg,
+					"'%s' in '%s' is bigger than (2^31-1)!",
+					content, node_path);
+				goto out;
+			}
 
-			rc = EXIT_FAILURE;
-			sprintf(err_msg,
-				"'%s' in '%s' is bigger than (2^31-1)!",
-				content, node_path);
-			goto out;
+			cur_sfi->sficonf.stream_handle_spec = (int32_t)(tmp);
+
 		} else if (strcmp(content, "priority-spec") == 0) {
-			rc = xml_read_field(tmp_node, "priority-spec",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			if (strcmp(ele_val, "zero") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 0;
+				cur_sfi->sficonf.priority_spec = 0;
 			} else if (strcmp(ele_val, "one") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 1;
+				cur_sfi->sficonf.priority_spec = 1;
 			} else if (strcmp(ele_val, "two") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 2;
+				cur_sfi->sficonf.priority_spec = 2;
 			} else if (strcmp(ele_val, "three") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 3;
+				cur_sfi->sficonf.priority_spec = 3;
 			} else if (strcmp(ele_val, "four") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 4;
+				cur_sfi->sficonf.priority_spec = 4;
 			} else if (strcmp(ele_val, "five") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 5;
+				cur_sfi->sficonf.priority_spec = 5;
 			} else if (strcmp(ele_val, "six") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 6;
+				cur_sfi->sficonf.priority_spec = 6;
 			} else if (strcmp(ele_val, "seven") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = 7;
+				cur_sfi->sficonf.priority_spec = 7;
 			} else if (strcmp(ele_val, "wildcard") == 0) {
-				cur_sfi_ptr->sficonf.priority_spec = -1;
+				cur_sfi->sficonf.priority_spec = -1;
 			} else {
 				sprintf(err_msg,
 					"'%s' in '%s' is out of range!",
@@ -325,17 +325,17 @@ int parse_stream_filter_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "stream-gate-ref") == 0) {
-			rc = xml_read_field(tmp_node, "stream-gate-ref",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			cur_sfi_ptr->sficonf.stream_gate_instance_id = (uint32_t)(tmp);
+			cur_sfi->sficonf.stream_gate_instance_id = (uint32_t)(tmp);
 		} else if (strcmp(content, "filter-specification-list") == 0) {
 			strcpy(path, node_path);
 			strcat(path, "/filter-specification-list");
-			rc = parse_filter_spec_list(tmp_node, cur_sfi_ptr,
+			rc = parse_filter_spec_list(tmp_node, cur_sfi,
 						    err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -372,6 +372,7 @@ int parse_stream_filters(xmlNode *node, struct std_qci_conf *qci_conf,
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "stream-filter-instance-table") != 0)
 			continue;
+		nc_verb_verbose("find sfi table conf");
 		if (qci_conf->sfi_table == NULL) {
 			qci_conf->sfi_table = creat_new_sfi_instance();
 			cur_sfi_table_ptr = qci_conf->sfi_table;
@@ -390,10 +391,51 @@ int parse_stream_filters(xmlNode *node, struct std_qci_conf *qci_conf,
 		rc = parse_stream_filter_table(tmp_node,
 					       cur_sfi_table_ptr,
 					       err_msg, path);
-		if (rc != EXIT_SUCCESS)
+		if (rc != EXIT_SUCCESS) {
+			nc_verb_verbose("parse filter table err");
 			goto out;
+		}
 	}
 out:
+	return rc;
+}
+
+int stream_filters_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable)
+{
+	int rc = EXIT_SUCCESS;
+	struct std_qci_conf qci_conf;
+	struct std_qci_psfp_sfi_table *table = NULL;
+
+	nc_verb_verbose("%s is called", __func__);
+	/* Init qci configuration data */
+	init_qci_memory(&qci_conf);
+
+	rc = parse_stream_filters(node, &qci_conf, err_msg, node_path);
+	if (rc != EXIT_SUCCESS)
+		goto out;
+
+	table = qci_conf.sfi_table;
+	while (table != NULL) {
+		if (disable)
+			table->sfi_ptr->enable = FALSE;
+		/* set new flow meters configuration */
+		rc = tsn_qci_psfp_sfi_set(portname,
+					  table->sfi_ptr->stream_filter_instance_id,
+					  table->sfi_ptr->enable,
+					  &(table->sfi_ptr->sficonf));
+		if (rc != EXIT_SUCCESS) {
+			sprintf(err_msg,
+				"failed to set stream identification, %s!",
+				strerror(-rc));
+			goto out;
+		}
+		if (table->next == NULL)
+			break;
+		table = table->next;
+	}
+out:
+	free_qci_memory(&qci_conf);
 	return rc;
 }
 
@@ -415,7 +457,7 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 
 		content = (char *)node->name;
 		if (strcmp(content, "gate-state-value") == 0) {
-			rc = xml_read_field(node, "gate-state-value",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -432,7 +474,7 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 				goto out;
 			}
 		} else if (strcmp(content, "ipv-value") == 0) {
-			rc = xml_read_field(node, "ipv-value",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -463,7 +505,7 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 				goto out;
 			}
 		} else if (strcmp(content, "time-interval-value") == 0) {
-			rc = xml_read_field(node, "time-interval-value",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -471,7 +513,7 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 			tmp = strtoul(ele_val, NULL, 0);
 			(entry + list_index)->time_interval = (uint32_t) tmp;
 		} else if (strcmp(content, "interval-octet-max") == 0) {
-			rc = xml_read_field(node, "interval-octet-max",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -505,7 +547,7 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "index") == 0) {
-			rc = xml_read_field(tmp_node, "index",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -522,7 +564,7 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 				goto out;
 			}
 		} else if (strcmp(content, "operation-name") == 0) {
-			rc = xml_read_field(tmp_node, "operation-name",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -562,7 +604,7 @@ int parse_ptp_time(xmlNode *node, char *err_msg, uint64_t *base_time,
 
 		content = (char *)node->name;
 		if (strcmp(content, "seconds") == 0) {
-			rc = xml_read_field(node, "seconds",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -579,38 +621,36 @@ int parse_ptp_time(xmlNode *node, char *err_msg, uint64_t *base_time,
 			}
 		} else if (strcmp(content, "nanoseconds") == 0) {
 			/* defined by qci module */
-			rc = xml_read_field(node, "nanoseconds",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 1000000000) {
-				admin_base_time.nano_seconds = (uint32_t) tmp;
-			} else {
+			if (tmp >= 1000000000) {
 				sprintf(err_msg,
 					"'%s' in '%s' should less than 10^9!",
 					content, node_path);
 				rc = EXIT_FAILURE;
 				goto out;
 			}
+			admin_base_time.nano_seconds = (uint32_t) tmp;
 		} else if (strcmp(content, "fractional-seconds") == 0) {
 			/* defined by qbv module */
-			rc = xml_read_field(node, "fractional-seconds",
+			rc = xml_read_field(node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 1000000000) {
-				admin_base_time.nano_seconds = (uint32_t) tmp;
-			} else {
+			if (tmp >= 1000000000) {
 				sprintf(err_msg,
 					"'%s' in '%s' should less than 10^9!",
 					content, node_path);
 				rc = EXIT_FAILURE;
 				goto out;
 			}
+			admin_base_time.nano_seconds = (uint32_t) tmp;
 		}
 	}
 	*base_time = admin_base_time.nano_seconds + (admin_base_time.seconds*1000000000);
@@ -640,8 +680,7 @@ int parse_stream_gate_table(xmlNode *node,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "stream-gate-instance-id") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "stream-gate-instance-id",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -649,7 +688,7 @@ int parse_stream_gate_table(xmlNode *node,
 			tmp = strtoul(ele_val, NULL, 0);
 			cur_sgi_ptr->sgi_handle = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-gate-states") == 0) {
-			rc = xml_read_field(tmp_node, "admin-gate-states",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -664,7 +703,7 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "admin-ipv") == 0) {
-			rc = xml_read_field(tmp_node, "admin-ipv",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -694,22 +733,20 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "admin-control-list-length") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "admin-control-list-length",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 256) {
-				cur_sgi_ptr->sgiconf.admin.control_list_length = (uint8_t)(tmp);
-			} else {
+			if (tmp >= 256) {
 				sprintf(err_msg,
 					"'%s' in '%s' out of range!",
 					content, node_path);
 				rc = EXIT_FAILURE;
 				goto out;
 			}
+			cur_sgi_ptr->sgiconf.admin.control_list_length = (uint8_t)(tmp);
 		} else if (strcmp(content, "admin-control-list") == 0) {
 			strcpy(path, node_path);
 			strcat(path, "/admin-control-list");
@@ -721,8 +758,7 @@ int parse_stream_gate_table(xmlNode *node,
 			list_index++;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
 		} else if (strcmp(content, "admin-cycle-time-extension") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "admin-cycle-time-extension",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -738,7 +774,7 @@ int parse_stream_gate_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		} else if (strcmp(content, "config-change") == 0) {
-			rc = xml_read_field(tmp_node, "config-change",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -753,7 +789,7 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "gate-closed-due-to-invalid-rx-enable") == 0) {
-			rc = xml_read_field(tmp_node, "gate-closed-due-to-invalid-rx-enable",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -768,8 +804,7 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "gate-closed-due-to-invalid-rx") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "gate-closed-due-to-invalid-rx",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -784,7 +819,7 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "gate-closed-due-octets-exceeded-enable") == 0) {
-			rc = xml_read_field(tmp_node, "gate-closed-due-octets-exceeded-enable",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -799,8 +834,7 @@ int parse_stream_gate_table(xmlNode *node,
 				goto out;
 			}
 		} else if (strcmp(content, "gate-closed-due-octets-exceeded") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "gate-closed-due-octets-exceeded",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -866,6 +900,45 @@ out:
 	return rc;
 }
 
+int stream_gates_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable)
+{
+	int rc = EXIT_SUCCESS;
+	struct std_qci_conf qci_conf;
+	struct std_qci_psfp_sgi_table *table = NULL;
+
+	nc_verb_verbose("%s is called", __func__);
+	/* Init qci configuration data */
+	init_qci_memory(&qci_conf);
+
+	rc = parse_stream_gates(node, &qci_conf, err_msg, node_path);
+	if (rc != EXIT_SUCCESS)
+		goto out;
+
+	table = qci_conf.sgi_table;
+	while (table != NULL) {
+		if (disable)
+			table->sgi_ptr->enable = FALSE;
+		/* set new flow meters configuration */
+		rc = tsn_qci_psfp_sgi_set(portname,
+					  table->sgi_ptr->sgi_handle,
+					  table->sgi_ptr->enable,
+					  &(table->sgi_ptr->sgiconf));
+		if (rc != EXIT_SUCCESS) {
+			sprintf(err_msg,
+				"failed to set stream identification, %s!",
+				strerror(-rc));
+			goto out;
+		}
+		if (table->next == NULL)
+			break;
+		table = table->next;
+	}
+out:
+	free_qci_memory(&qci_conf);
+	return rc;
+}
+
 int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 	char *err_msg, char *node_path)
 {
@@ -886,72 +959,65 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "flow-meter-instance-id") == 0) {
-			rc = xml_read_field(tmp_node, "flow-meter-instance-id",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS) {
+			if (rc != EXIT_SUCCESS)
 				goto out;
-			} else {
-				tmp = strtoul(ele_val, NULL, 0);
-				cur_fmi_ptr->fmi_id = (uint32_t)tmp;
-				cur_fmi_ptr->enable = TRUE;
-			}
+
+			tmp = strtoul(ele_val, NULL, 0);
+			cur_fmi_ptr->fmi_id = (uint32_t)tmp;
+			cur_fmi_ptr->enable = TRUE;
 		} else if (strcmp(content,
 				  "committed-information-rate") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "committed-information-rate",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
 			tmp /= 1000;/* the units of cir in tsntool is kbit/s */
-			if (tmp < 2147483648) {/* 2^31 */
-				cur_fmi_ptr->fmiconf.cir = (uint32_t)(tmp);
-			} else {
+			if (tmp >= 2147483648) {/* 2^31 */
 				rc = EXIT_FAILURE;
 				sprintf(err_msg,
 					"'%s' in '%s' out of range!",
 					content, node_path);
 				goto out;
 			}
+			cur_fmi_ptr->fmiconf.cir = (uint32_t)(tmp);
 		} else if (strcmp(content, "committed-burst-size") == 0) {
-			rc = xml_read_field(tmp_node, "committed-burst-size",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS) {
+			if (rc != EXIT_SUCCESS)
 				goto out;
-			} else {
-				tmp = strtoul(ele_val, NULL, 0);
-				cur_fmi_ptr->fmiconf.cbs = (uint32_t)(tmp);
-			}
+
+			tmp = strtoul(ele_val, NULL, 0);
+			cur_fmi_ptr->fmiconf.cbs = (uint32_t)(tmp);
 		} else if (strcmp(content, "excess-information-rate") == 0) {
-			rc = xml_read_field(tmp_node,
-					    "excess-information-rate",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
 			tmp = strtoul(ele_val, NULL, 0);
 			tmp /= 1000;/* the units of cir in tsntool is kbit/s */
-			if (tmp < 2147483648) {/* 2^31 */
-				cur_fmi_ptr->fmiconf.eir = (uint32_t)(tmp);
-			} else {
+			if (tmp >= 2147483648) {/* 2^31 */
 				rc = EXIT_FAILURE;
 				sprintf(err_msg,
 					"'%s' in '%s' is out of range!",
 					content, node_path);
 				goto out;
 			}
+			cur_fmi_ptr->fmiconf.eir = (uint32_t)(tmp);
 		} else if (strcmp(content, "excess-burst-size") == 0) {
-			rc = xml_read_field(tmp_node, "excess-burst-size",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS) {
+			if (rc != EXIT_SUCCESS)
 				goto out;
-			} else {
-				tmp = strtoul(ele_val, NULL, 0);
-				cur_fmi_ptr->fmiconf.ebs = (uint32_t)(tmp);
-			}
+
+			tmp = strtoul(ele_val, NULL, 0);
+			cur_fmi_ptr->fmiconf.ebs = (uint32_t)(tmp);
 		} else if (strcmp(content, "coupling-flag") == 0) {
-			rc = xml_read_field(tmp_node, "coupling-flag",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -962,13 +1028,13 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				cur_fmi_ptr->fmiconf.cf = TRUE;
 			} else {
 				sprintf(err_msg,
-					"'%s' in '%s' must be 'zero' or 'one'!",
+					"Invalid '%s' in '%s'!",
 					content, node_path);
 				rc = EXIT_FAILURE;
 				goto out;
 			}
 		} else if (strcmp(content, "color-mode") == 0) {
-			rc = xml_read_field(tmp_node, "color-mode",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -980,13 +1046,13 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				cur_fmi_ptr->fmiconf.cm = TRUE;
 			} else {
 				sprintf(err_msg,
-					"'%s' in '%s' must be 'color-blind' or 'color-aware'!",
+					"Invalid '%s' in '%s'!",
 					content, node_path);
 				rc = EXIT_FAILURE;
 				goto out;
 			}
 		} else if (strcmp(content, "drop-on-yellow") == 0) {
-			rc = xml_read_field(tmp_node, "drop-on-yellow",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -1001,7 +1067,7 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 			}
 		} else if (strcmp(content,
 				  "mark-all-frames-red-enable") == 0) {
-			rc = xml_read_field(tmp_node, "mark-all-frames-red-enable",
+			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
@@ -1062,6 +1128,49 @@ int parse_flow_meters(xmlNode *node, struct std_qci_conf *qci_conf,
 			goto out;
 	}
 out:
+	return rc;
+}
+
+int flowmeters_handle(char *portname, xmlNode *node,
+	   char *err_msg, char *node_path, int disable)
+{
+	int rc = EXIT_SUCCESS;
+	struct std_qci_conf qci_conf;
+	struct std_qci_psfp_fmi_table *table = NULL;
+
+	nc_verb_verbose("%s is called", __func__);
+	/* Init qci configuration data */
+	init_qci_memory(&qci_conf);
+
+	rc = parse_flow_meters(node, &qci_conf, err_msg, node_path);
+	if (rc != EXIT_SUCCESS)
+		goto out;
+
+	table = qci_conf.fmi_table;
+	while (table != NULL) {
+		if (disable)
+			table->fmi_ptr->enable = FALSE;
+		/* set new flow meters configuration */
+		nc_verb_verbose("cir is %d", table->fmi_ptr->fmiconf.cir);
+		nc_verb_verbose("cbs is %d", table->fmi_ptr->fmiconf.cbs);
+		nc_verb_verbose("eir is %d", table->fmi_ptr->fmiconf.eir);
+		nc_verb_verbose("ebs is %d", table->fmi_ptr->fmiconf.ebs);
+		rc = tsn_qci_psfp_fmi_set(portname,
+					  table->fmi_ptr->fmi_id,
+					  table->fmi_ptr->enable,
+					  &(table->fmi_ptr->fmiconf));
+		if (rc != EXIT_SUCCESS) {
+			sprintf(err_msg,
+				"failed to set stream identification, %s!",
+				strerror(-rc));
+			goto out;
+		}
+		if (table->next == NULL)
+			break;
+		table = table->next;
+	}
+out:
+	free_qci_memory(&qci_conf);
 	return rc;
 }
 
