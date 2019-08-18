@@ -14,9 +14,18 @@
 			<sched:admin-gate-states>0xfd</sched:admin-gate-states>
 			<sched:config-change>true</sched:config-change>
 			<sched:admin-control-list-length>3</sched:admin-control-list-length>
+			<sched:admin-cycle-time-extension>1000</sched:admin-cycle-time-extension>
+			<sched:admin-base-time>
+				<sched:seconds>100</sched:seconds>
+				<sched:fractional-seconds>5000</sched:fractional-seconds>
+			</sched:admin-base-time>
+			<sched:admin-cycle-time>
+				<sched:numerator>5110000</sched:numerator>
+				<sched:denominator>1000000000</sched:denominator>
+			</sched:admin-cycle-time>
 			<sched:admin-control-list>
 				<sched:index>0</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0x03</sched:gate-states-value>
 					<sched:time-interval-value>50000</sched:time-interval-value>
@@ -24,7 +33,7 @@
 			</sched:admin-control-list>
 			<sched:admin-control-list>
 				<sched:index>1</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0xef</sched:gate-states-value>
 					<sched:time-interval-value>60000</sched:time-interval-value>
@@ -32,7 +41,7 @@
 			</sched:admin-control-list>
 			<sched:admin-control-list>
 				<sched:index>2</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0xff</sched:gate-states-value>
 					<sched:time-interval-value>5000000</sched:time-interval-value>
@@ -41,7 +50,7 @@
 		</sched:gate-parameters>
 	</interface>
 	<interface>
-		<name>eno0</name>
+		<name>swp1</name>
 		<enabled>true</enabled>
 		<sched:max-sdu-table>
 			<sched:traffic-class>0</sched:traffic-class>
@@ -52,9 +61,13 @@
 			<sched:admin-gate-states>0xff</sched:admin-gate-states>
 			<sched:config-change>true</sched:config-change>
 			<sched:admin-control-list-length>3</sched:admin-control-list-length>
+			<sched:admin-cycle-time>
+				<sched:numerator>61000</sched:numerator>
+				<sched:denominator>1000000000</sched:denominator>
+			</sched:admin-cycle-time>
 			<sched:admin-control-list>
 				<sched:index>0</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0x03</sched:gate-states-value>
 					<sched:time-interval-value>5000</sched:time-interval-value>
@@ -62,7 +75,7 @@
 			</sched:admin-control-list>
 			<sched:admin-control-list>
 				<sched:index>1</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0xef</sched:gate-states-value>
 					<sched:time-interval-value>6000</sched:time-interval-value>
@@ -70,7 +83,7 @@
 			</sched:admin-control-list>
 			<sched:admin-control-list>
 				<sched:index>2</sched:index>
-				<sched:operation-name>set-gate-states</sched:operation-name>
+				<sched:operation-name>sched:set-gate-states</sched:operation-name>
 				<sched:sgs-params>
 					<sched:gate-states-value>0xff</sched:gate-states-value>
 					<sched:time-interval-value>50000</sched:time-interval-value>

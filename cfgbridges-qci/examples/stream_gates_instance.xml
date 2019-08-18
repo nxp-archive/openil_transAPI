@@ -17,13 +17,21 @@
                     <sfsg:admin-gate-states>open</sfsg:admin-gate-states>
                     <sfsg:admin-ipv>wildcard</sfsg:admin-ipv>
                     <psfp:admin-control-list-length>1</psfp:admin-control-list-length>
-                    <psfp:admin-cycle-time>16000</psfp:admin-cycle-time>
+			<psfp:admin-cycle-time-extension>1000</psfp:admin-cycle-time-extension>
+			<psfp:admin-base-time>
+				<psfp:seconds>100</psfp:seconds>
+				<psfp:nanoseconds>5000</psfp:nanoseconds>
+			</psfp:admin-base-time>
+			<psfp:admin-cycle-time>
+				<psfp:numerator>16000</psfp:numerator>
+				<psfp:denominator>1000000000</psfp:denominator>
+			</psfp:admin-cycle-time>
                     <psfp:admin-control-list>
                         <psfp:index>0</psfp:index>
                         <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
                         <psfp:parameters>
                             <psfp:gate-state-value>open</psfp:gate-state-value>
-                            <psfp:ipv-type>two</psfp:ipv-type>
+                            <psfp:ipv-value>two</psfp:ipv-value>
                             <psfp:time-interval-value>8000</psfp:time-interval-value>
                         </psfp:parameters>
                     </psfp:admin-control-list>
@@ -32,7 +40,34 @@
                         <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
                         <psfp:parameters>
                             <psfp:gate-state-value>closed</psfp:gate-state-value>
-                            <psfp:ipv-type>two</psfp:ipv-type>
+                            <psfp:ipv-value>two</psfp:ipv-value>
+                            <psfp:time-interval-value>8000</psfp:time-interval-value>
+                        </psfp:parameters>
+                    </psfp:admin-control-list>
+                    <sfsg:config-change>true</sfsg:config-change>
+                </sfsg:stream-gate-instance-table>
+                <sfsg:stream-gate-instance-table>
+                    <sfsg:stream-gate-instance-id>2</sfsg:stream-gate-instance-id>
+                    <sfsg:gate-enable>true</sfsg:gate-enable>
+                    <sfsg:admin-gate-states>closed</sfsg:admin-gate-states>
+                    <sfsg:admin-ipv>wildcard</sfsg:admin-ipv>
+                    <psfp:admin-control-list-length>1</psfp:admin-control-list-length>
+                    <psfp:admin-cycle-time>17000</psfp:admin-cycle-time>
+                    <psfp:admin-control-list>
+                        <psfp:index>0</psfp:index>
+                        <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
+                        <psfp:parameters>
+                            <psfp:gate-state-value>open</psfp:gate-state-value>
+                            <psfp:ipv-value>two</psfp:ipv-value>
+                            <psfp:time-interval-value>9000</psfp:time-interval-value>
+                        </psfp:parameters>
+                    </psfp:admin-control-list>
+                    <psfp:admin-control-list>
+                        <psfp:index>1</psfp:index>
+                        <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
+                        <psfp:parameters>
+                            <psfp:gate-state-value>closed</psfp:gate-state-value>
+                            <psfp:ipv-value>two</psfp:ipv-value>
                             <psfp:time-interval-value>8000</psfp:time-interval-value>
                         </psfp:parameters>
                     </psfp:admin-control-list>

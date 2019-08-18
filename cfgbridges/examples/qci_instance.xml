@@ -30,11 +30,11 @@
                     <sfsg:gate-enable>true</sfsg:gate-enable>
                     <sfsg:admin-gate-states>open</sfsg:admin-gate-states>
                     <sfsg:admin-ipv>wildcard</sfsg:admin-ipv>
-                    <psfp:admin-control-list-length>1</psfp:admin-control-list-length>
+                    <psfp:admin-control-list-length>2</psfp:admin-control-list-length>
                     <psfp:admin-cycle-time>16000</psfp:admin-cycle-time>
                     <psfp:admin-control-list>
                         <psfp:index>0</psfp:index>
-                        <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
+                        <psfp:operation-name>psfp:set-gate-and-ipv</psfp:operation-name>
                         <psfp:parameters>
                             <psfp:gate-state-value>open</psfp:gate-state-value>
                             <psfp:ipv-type>two</psfp:ipv-type>
@@ -43,7 +43,7 @@
                     </psfp:admin-control-list>
                     <psfp:admin-control-list>
                         <psfp:index>1</psfp:index>
-                        <psfp:operation-name>set-gate-and-ipv</psfp:operation-name>
+                        <psfp:operation-name>psfp:set-gate-and-ipv</psfp:operation-name>
                         <psfp:parameters>
                             <psfp:gate-state-value>closed</psfp:gate-state-value>
                             <psfp:ipv-type>two</psfp:ipv-type>

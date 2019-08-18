@@ -19,28 +19,27 @@
                     <psfp:excess-burst-size>100000000</psfp:excess-burst-size>
                     <psfp:coupling-flag>one</psfp:coupling-flag>
                     <psfp:color-mode>color-blind</psfp:color-mode>
-                    <psfp:drop-on-yellow>1</psfp:drop-on-yellow>
+                    <psfp:drop-on-yellow>true</psfp:drop-on-yellow>
                 </psfp:flow-meter-instance-table>
-            </psfp:flow-meters>
-        </component>
-	</bridge>
-	<bridge>
-        <name>enetc</name>
-        <address>00:01:83:fe:12:01</address>
-        <bridge-type>provider-edge-bridge</bridge-type>
-        <component>
-            <name>eno0</name>
-            <type>customer-vlan-bridge</type>
-            <psfp:flow-meters>
                 <psfp:flow-meter-instance-table>
-                    <psfp:flow-meter-instance-id>2</psfp:flow-meter-instance-id>
-                    <psfp:committed-information-rate>1000000</psfp:committed-information-rate>
-                    <psfp:committed-burst-size>40000</psfp:committed-burst-size>
-                    <psfp:excess-information-rate>50000</psfp:excess-information-rate>
+                    <psfp:flow-meter-instance-id>80</psfp:flow-meter-instance-id>
+                    <psfp:committed-information-rate>100000000</psfp:committed-information-rate>
+                    <psfp:committed-burst-size>4000000</psfp:committed-burst-size>
+                    <psfp:excess-information-rate>4000000</psfp:excess-information-rate>
                     <psfp:excess-burst-size>100000000</psfp:excess-burst-size>
                     <psfp:coupling-flag>one</psfp:coupling-flag>
-                    <psfp:color-mode>color-aware</psfp:color-mode>
-                    <psfp:drop-on-yellow>1</psfp:drop-on-yellow>
+                    <psfp:color-mode>color-blind</psfp:color-mode>
+                    <psfp:drop-on-yellow>false</psfp:drop-on-yellow>
+                </psfp:flow-meter-instance-table>
+                <psfp:flow-meter-instance-table>
+                    <psfp:flow-meter-instance-id>70</psfp:flow-meter-instance-id>
+                    <psfp:committed-information-rate>100000000</psfp:committed-information-rate>
+                    <psfp:committed-burst-size>4000000</psfp:committed-burst-size>
+                    <psfp:excess-information-rate>4000000</psfp:excess-information-rate>
+                    <psfp:excess-burst-size>100000000</psfp:excess-burst-size>
+                    <psfp:coupling-flag>one</psfp:coupling-flag>
+                    <psfp:color-mode>color-blind</psfp:color-mode>
+                    <psfp:drop-on-yellow>true</psfp:drop-on-yellow>
                 </psfp:flow-meter-instance-table>
             </psfp:flow-meters>
         </component>
