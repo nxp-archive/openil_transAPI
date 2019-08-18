@@ -757,6 +757,11 @@ int parse_stream_gate_table(xmlNode *node,
 
 			list_index++;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
+			rc = get_cycle_time(tmp_node,
+					    &cur_sgi_ptr->sgiconf.admin.cycle_time,
+					    err_msg, path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
 		} else if (strcmp(content, "admin-cycle-time-extension") == 0) {
 			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);

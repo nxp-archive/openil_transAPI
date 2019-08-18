@@ -4,6 +4,7 @@
  * Copyright 2019 NXP
  */
 #include <libxml/tree.h>
+#include "platform.h"
 #ifndef __XML_NODE_ACCESS_H__
 #define __XML_NODE_ACCESS_H__
 
@@ -14,4 +15,6 @@ xmlNodePtr create_root_in_doc(xmlDocPtr doc, char *rootname, char *ns);
 xmlNodePtr create_root_in_doc_no_ns(xmlDocPtr doc, char *rootname);
 void free_doc_mem(xmlDocPtr doc);
 void prt_err_bool(char *err_msg, char *name, char *path);
+int get_cycle_time(xmlNode *node, uint32_t *cycle_time, char *err_msg,
+		char *node_path);
 #endif

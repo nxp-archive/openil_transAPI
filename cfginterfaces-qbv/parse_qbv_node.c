@@ -64,47 +64,6 @@ out:
 	return rc;
 }
 
-int qbv_parse_admin_cycle_time(xmlNode *node, struct std_qbv_conf *admin_conf,
-	char *err_msg, char *node_path)
-{
-	int rc = EXIT_SUCCESS;
-	char *content;
-	char ele_val[MAX_ELEMENT_LENGTH];
-	uint64_t num = 0;
-	uint64_t den = 1;
-
-	nc_verb_verbose("%s is called", __func__);
-
-	for (node = node->children; node != NULL; node = node->next) {
-		if (node->type != XML_ELEMENT_NODE)
-			continue;
-
-		content = (char *)node->name;
-		if (strcmp(content, "numerator") == 0) {
-			rc = xml_read_field(node, "numerator",
-					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS)
-				goto out;
-			num = strtoul(ele_val, NULL, 0);
-		} else if (strcmp(content, "denominator") == 0) {
-			rc = xml_read_field(node, "denominator",
-					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS)
-				goto out;
-			den = strtoul(ele_val, NULL, 0);
-			if (!den) {
-				nc_verb_verbose("Invalid '%s' in '%s'",
-						content, node_path);
-			}
-		}
-	}
-	admin_conf->qbv_conf.admin.cycle_time = (int)((num * 1000000000)/den);
-	nc_verb_verbose("admin cycle_time is :%ld",
-			admin_conf->qbv_conf.admin.cycle_time);
-out:
-	return rc;
-}
-
 int qbv_parse_admin_base_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 	char *err_msg, char *node_path)
 {
@@ -157,7 +116,7 @@ int qbv_parse_admin_base_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 	}
 	admin_conf->qbv_conf.admin.base_time = admin_base_time.nano_seconds + \
 		(admin_base_time.seconds*1000000000);
-	nc_verb_verbose("base time is %lu", admin_conf->qbv_conf.admin.base_time);
+	//nc_verb_verbose("base time is %lu", admin_conf->qbv_conf.admin.base_time);
 out:
 	return rc;
 }
@@ -322,9 +281,8 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			tmp = strtoul(ele_val, NULL, 0);
 			admin_conf->qbv_conf.admin.control_list_length = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
-			/* admin_cycle_time will be recaculate in tsntool */
 			strcat(node_path, "/admin-cycle-time");
-			rc = qbv_parse_admin_cycle_time(tmp_node, admin_conf,
+			rc = get_cycle_time(tmp_node, &admin_conf->qbv_conf.admin.cycle_time,
 				err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;

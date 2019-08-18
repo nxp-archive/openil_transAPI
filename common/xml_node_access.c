@@ -56,6 +56,45 @@ xmlNodePtr get_child_node(xmlNodePtr parent_node, const char *child_node_name)
 out:
 	return NULL;
 }
+
+int get_cycle_time(xmlNode *node, uint32_t *cycle_time,
+	char *err_msg, char *node_path)
+{
+	int rc = EXIT_SUCCESS;
+	char *content;
+	char ele_val[MAX_ELEMENT_LENGTH];
+	uint64_t num = 0;
+	uint64_t den = 1;
+
+	nc_verb_verbose("%s is called", __func__);
+
+	for (node = node->children; node != NULL; node = node->next) {
+		if (node->type != XML_ELEMENT_NODE)
+			continue;
+
+		content = (char *)node->name;
+		if (strcmp(content, "numerator") == 0) {
+			rc = xml_read_field(node, "numerator",
+					    ele_val, err_msg, node_path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
+			num = strtoul(ele_val, NULL, 0);
+		} else if (strcmp(content, "denominator") == 0) {
+			rc = xml_read_field(node, "denominator",
+					    ele_val, err_msg, node_path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
+			den = strtoul(ele_val, NULL, 0);
+			if (!den) {
+				nc_verb_verbose("Invalid '%s' in '%s'",
+						content, node_path);
+			}
+		}
+	}
+	*cycle_time = (uint32_t)((num * 1000000000)/den);
+out:
+	return rc;
+}
 /**
  * @brief Create a xmldoc with root node and namespace
  *        return the root node pointer.
