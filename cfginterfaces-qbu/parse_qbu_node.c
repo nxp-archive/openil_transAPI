@@ -47,6 +47,7 @@ int parse_preempt_st_table(xmlNode *node,
 
 			tmp = strtoul(ele_val, NULL, 0);
 			traffic_class = (uint8_t)tmp;
+			str_del_last_key(node_path);
 			strcat(node_path, "(");
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
@@ -105,8 +106,8 @@ int parse_qbu_node(xmlNode *node, struct std_qbu_conf *qbu_conf,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "frame-preemption-parameters") == 0) {
-			strcpy(path, node_path);
-			strcat(path, "/frame-preemption-parameters");
+			strcat(node_path, "/");
+			strcat(node_path, content);
 			break;
 		}
 	}
@@ -118,7 +119,9 @@ int parse_qbu_node(xmlNode *node, struct std_qbu_conf *qbu_conf,
 
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "frame-preemption-status-table") == 0) {
-			strcat(path, "/frame-preemption-status-table");
+			strcpy(path, node_path);
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_preempt_st_table(tmp_node, qbu_conf,
 						    err_msg, path);
 			if (rc != EXIT_SUCCESS)

@@ -17,4 +17,5 @@ void free_doc_mem(xmlDocPtr doc);
 void prt_err_bool(char *err_msg, char *name, char *path);
 int get_cycle_time(xmlNode *node, uint32_t *cycle_time, char *err_msg,
 		char *node_path);
+void str_del_last_key(char *str);
 #endif

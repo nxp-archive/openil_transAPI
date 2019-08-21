@@ -368,6 +368,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_SFI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SFI_MASK;
 		sub_node = get_child_node(node, "stream-filters");
+		strcat(path, "/stream-filters");
 		rc = stream_filters_handle(name, sub_node,
 					   err_msg, path, disable);
 		if (rc != EXIT_SUCCESS)
@@ -378,6 +379,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_SGI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SGI_MASK;
 		sub_node = get_child_node(node, "stream-gates");
+		strcat(path, "/stream-gates");
 		rc = stream_gates_handle(name, sub_node, err_msg,
 					 path, disable);
 		if (rc != EXIT_SUCCESS)
@@ -388,6 +390,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_FMI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_FMI_MASK;
 		sub_node = get_child_node(node, "flow-meters");
+		strcat(path, "/flow-meters");
 		rc = flowmeters_handle(name, sub_node, err_msg,
 				       path, disable);
 		if (rc != EXIT_SUCCESS)
@@ -398,6 +401,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & CB_MASK) {
 		bridge_cfg_change_ind &= ~CB_MASK;
 		sub_node = get_child_node(node, "streams");
+		strcat(path, "/streams");
 		rc = cbstreamid_handle(name, sub_node, err_msg, path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;

@@ -146,6 +146,7 @@ int qbv_parse_admin_control_list(xmlNode *node, struct std_qbv_conf *admin_conf,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+			str_del_last_key(node_path);
 			strcat(node_path, "(");
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
@@ -211,6 +212,7 @@ int parse_max_sdu_table(xmlNode *node, struct std_qbv_conf *admin_conf,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
+				str_del_last_key(node_path);
 				strcat(node_path, "(");
 				strcat(node_path, ele_val);
 				strcat(node_path, ")");
@@ -281,9 +283,11 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			tmp = strtoul(ele_val, NULL, 0);
 			admin_conf->qbv_conf.admin.control_list_length = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
-			strcat(node_path, "/admin-cycle-time");
+			strcpy(path, node_path);
+			strcat(path, "/");
+			strcat(path, content);
 			rc = get_cycle_time(tmp_node, &admin_conf->qbv_conf.admin.cycle_time,
-				err_msg, node_path);
+				err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		} else if (strcmp(content, "admin-cycle-time-extension") == 0) {
@@ -294,9 +298,11 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			tmp = strtoul(ele_val, NULL, 0);
 			admin_conf->qbv_conf.admin.cycle_time_extension = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-base-time") == 0) {
-			strcat(node_path, "/admin-base-time");
+			strcpy(path, node_path);
+			strcat(path, "/");
+			strcat(path, content);
 			rc = qbv_parse_admin_base_time(tmp_node, admin_conf,
-				err_msg, node_path);
+				err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		} else if (strcmp(content, "config-change") == 0) {
@@ -316,9 +322,10 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			}
 		} else if (strcmp(content, "admin-control-list") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/admin-control-list");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = qbv_parse_admin_control_list(tmp_node, admin_conf,
-				list_index, err_msg, node_path);
+				list_index, err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 			else
@@ -563,15 +570,18 @@ int parse_qbv_node(xmlNode *node, struct std_qbv_conf *admin_conf,
 		content = (char *)tmp_node->name;
 		if (strcmp(content, "max-sdu-table") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/max-sdu-table");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_max_sdu_table(tmp_node, admin_conf,
 						 err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		} else if (strcmp(content, "gate-parameters") == 0) {
-			strcat(node_path, "/gate-parameters");
+			strcpy(path, node_path);
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_gate_paras(tmp_node, admin_conf,
-					      err_msg, node_path);
+					      err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 		}

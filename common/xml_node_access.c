@@ -141,3 +141,21 @@ void prt_err_bool(char *err_msg, char *name, char *path)
 		"the value of '%s' in '%s' must be 'true' or 'false'!",
 		name, path);
 }
+
+void str_del_last_key(char *str)
+{
+	char *char_ptr = str;
+	int i;
+	int len = strlen(str);
+
+	char_ptr += len - 1;
+	if (*char_ptr != ')')
+		return;
+
+	for (i = 1; i < len; i++) {
+		if (*char_ptr == '(')
+			break;
+		char_ptr--;
+	}
+	*char_ptr = 0;
+}

@@ -229,6 +229,7 @@ int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
+				str_del_last_key(node_path);
 				strcat(node_path, "(");
 				strcat(node_path, ele_val);
 				strcat(node_path, ")");
@@ -267,6 +268,7 @@ int parse_stream_filter_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
+			str_del_last_key(node_path);
 			strcat(node_path, "(");
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
@@ -334,7 +336,8 @@ int parse_stream_filter_table(xmlNode *node,
 			cur_sfi->sficonf.stream_gate_instance_id = (uint32_t)(tmp);
 		} else if (strcmp(content, "filter-specification-list") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/filter-specification-list");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_filter_spec_list(tmp_node, cur_sfi,
 						    err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -387,7 +390,8 @@ int parse_stream_filters(xmlNode *node, struct std_qci_conf *qci_conf,
 			goto out;
 		}
 		strcpy(path, node_path);
-		strcat(path, "/stream-filter-instance-table");
+		strcat(path, "/");
+		strcat(path, content);
 		rc = parse_stream_filter_table(tmp_node,
 					       cur_sfi_table_ptr,
 					       err_msg, path);
@@ -552,6 +556,7 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
+			str_del_last_key(node_path);
 			strcat(node_path, "(");
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
@@ -578,7 +583,8 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 			}
 		} else if (strcmp(content, "parameters") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/parameters");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_parameters(tmp_node, sgi_conf, list_index,
 				err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -749,7 +755,8 @@ int parse_stream_gate_table(xmlNode *node,
 			cur_sgi_ptr->sgiconf.admin.control_list_length = (uint8_t)(tmp);
 		} else if (strcmp(content, "admin-control-list") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/admin-control-list");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_admin_sgl(tmp_node, &cur_sgi_ptr->sgiconf,
 					     list_index, err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -772,7 +779,8 @@ int parse_stream_gate_table(xmlNode *node,
 			cur_sgi_ptr->sgiconf.admin.cycle_time_extension = (uint32_t)(tmp);
 		} else if (strcmp(content, "admin-base-time") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/admin-base-time");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_ptp_time(tmp_node, err_msg,
 					    (uint64_t *)&cur_sgi_ptr->sgiconf.admin.base_time,
 					    path);
@@ -893,7 +901,8 @@ int parse_stream_gates(xmlNode *node, struct std_qci_conf *qci_conf,
 				goto out;
 			}
 			strcpy(path, node_path);
-			strcat(path, "/stream-gate-instance-table");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_stream_gate_table(tmp_node,
 						     cur_sgi_table_ptr,
 						     err_msg, path);
@@ -1126,7 +1135,8 @@ int parse_flow_meters(xmlNode *node, struct std_qci_conf *qci_conf,
 			goto out;
 		}
 		strcpy(path, node_path);
-		strcat(path, "/flow-meter-instance-table");
+		strcat(path, "/");
+		strcat(path, content);
 		rc = parse_fm_table(tmp_node, cur_fmi_table_ptr,
 				    err_msg, path);
 		if (rc != EXIT_SUCCESS)
@@ -1156,10 +1166,10 @@ int flowmeters_handle(char *portname, xmlNode *node,
 		if (disable)
 			table->fmi_ptr->enable = FALSE;
 		/* set new flow meters configuration */
-		nc_verb_verbose("cir is %d", table->fmi_ptr->fmiconf.cir);
-		nc_verb_verbose("cbs is %d", table->fmi_ptr->fmiconf.cbs);
-		nc_verb_verbose("eir is %d", table->fmi_ptr->fmiconf.eir);
-		nc_verb_verbose("ebs is %d", table->fmi_ptr->fmiconf.ebs);
+		//nc_verb_verbose("cir is %d", table->fmi_ptr->fmiconf.cir);
+		//nc_verb_verbose("cbs is %d", table->fmi_ptr->fmiconf.cbs);
+		//nc_verb_verbose("eir is %d", table->fmi_ptr->fmiconf.eir);
+		//nc_verb_verbose("ebs is %d", table->fmi_ptr->fmiconf.ebs);
 		rc = tsn_qci_psfp_fmi_set(portname,
 					  table->fmi_ptr->fmi_id,
 					  table->fmi_ptr->enable,

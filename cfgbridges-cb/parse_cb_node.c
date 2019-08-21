@@ -217,7 +217,8 @@ int parse_null_streamid_params(xmlNode *node,
 				goto out;
 
 			strcpy(path, node_path);
-			strcat(path, "/stream-gate-instance-table");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_mac_address(ele_val, &tmp,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -290,7 +291,8 @@ int parse_smac_vlan_params(xmlNode *node,
 				goto out;
 
 			strcpy(path, node_path);
-			strcat(path, "/source-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_mac_address(ele_val, &tmp,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -364,7 +366,8 @@ int parse_dmac_vlan_params(xmlNode *node,
 				goto out;
 
 			strcpy(path, node_path);
-			strcat(path, "/down-dest-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_mac_address(ele_val, &tmp,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -413,7 +416,8 @@ int parse_dmac_vlan_params(xmlNode *node,
 				goto out;
 
 			strcpy(path, node_path);
-			strcat(path, "/up-dest-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_mac_address(ele_val, &tmp,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -496,7 +500,8 @@ int parse_stream_ip_params(xmlNode *node,
 				goto out;
 
 			strcpy(path, node_path);
-			strcat(path, "/dest-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_mac_address(ele_val, &tmp,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -532,7 +537,8 @@ int parse_stream_ip_params(xmlNode *node,
 			stream->cbconf.para.iid.vid = (uint16_t)tmp;
 		} else if (strcmp(content, "source-ip-address") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/source-ip-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_ip_address(tmp_node, &address,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -542,7 +548,8 @@ int parse_stream_ip_params(xmlNode *node,
 			stream->cbconf.para.iid.sipl = address.ipl;
 		} else if (strcmp(content, "dest-ip-address") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/dest-ip-address");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_ip_address(tmp_node, &address,
 					       err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -717,7 +724,8 @@ int parse_stream_id_table(xmlNode *node,
 
 		} else if (strcmp(content, "parameters") == 0) {
 			strcpy(path, node_path);
-			strcat(path, "/parameters");
+			strcat(path, "/");
+			strcat(path, content);
 			switch (entry->cbconf.type) {
 			case STREAMID_NULL:
 				rc = parse_null_streamid_params(tmp_node,
@@ -786,7 +794,8 @@ int parse_cb_node(xmlNode *node, struct std_cb_conf *cb_conf,
 				goto out;
 			}
 			strcpy(path, node_path);
-			strcat(path, "/stream-identity-table");
+			strcat(path, "/");
+			strcat(path, content);
 			rc = parse_stream_id_table(tmp_node, cur_table,
 						   err_msg, path);
 			if (rc != EXIT_SUCCESS)
@@ -806,14 +815,13 @@ int cbstreamid_handle(char *portname, xmlNode *node,
 {
 	int rc = EXIT_SUCCESS;
 	struct std_cb_conf cb_conf;
-	char path[MAX_PATH_LENGTH];
 	struct std_cb_stream_table *table = NULL;
 
 	nc_verb_verbose("%s is called", __func__);
 	/* Init cb configuration data */
 	init_cb_memory(&cb_conf);
 
-	rc = parse_cb_node(node, &cb_conf, err_msg, path);
+	rc = parse_cb_node(node, &cb_conf, err_msg, node_path);
 
 	if (rc != EXIT_SUCCESS)
 		goto out;
