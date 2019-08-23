@@ -39,24 +39,27 @@ int parse_sgs_params(xmlNode *node, struct std_qbv_conf *admin_conf,
 
 		content = (char *)node->name;
 		if (strcmp(content, "gate-states-value") == 0) {
-			rc = xml_read_field(node, "gate-states-value",
-					    ele_val, err_msg, node_path);
+			rc = xml_read_field(node, content, ele_val,
+					    err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			if (strlen(ele_val) > 7)
-				tmp = strtoul(ele_val, NULL, 2);
-			else
-				tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U8, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			(entry + list_index)->gate_state = (uint8_t)tmp;
 
 		} else if (strcmp(content, "time-interval-value") == 0) {
-			rc = xml_read_field(node, "time-interval-value",
-					    ele_val, err_msg, node_path);
+			rc = xml_read_field(node, content, ele_val,
+					    err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
 			(entry + list_index)->time_interval = (uint32_t)tmp;
 		}
 	}
@@ -86,32 +89,22 @@ int qbv_parse_admin_base_time(xmlNode *node, struct std_qbv_conf *admin_conf,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp <= 0xFFFFFFFF) {
-				admin_base_time.seconds = (uint32_t) tmp;
-			} else {
-				sprintf(err_msg,
-					"'%s' in '%s' out of range!",
-					content, node_path);
-				rc = EXIT_FAILURE;
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
 				goto out;
-			}
+			admin_base_time.seconds = (uint32_t) tmp;
 		} else if (strcmp(content, "fractional-seconds") == 0) {
 			rc = xml_read_field(node, "fractional-seconds",
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
-			if (tmp < 1000000000) {
-				admin_base_time.nano_seconds = (uint32_t) tmp;
-			} else {
-				sprintf(err_msg,
-					"'%s' in '%s' must less than 10^9",
-					content, node_path);
-				rc = EXIT_FAILURE;
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
 				goto out;
-			}
+			admin_base_time.nano_seconds = (uint32_t) tmp;
 		}
 	}
 	admin_conf->qbv_conf.admin.base_time = admin_base_time.nano_seconds + \
@@ -150,7 +143,10 @@ int qbv_parse_admin_control_list(xmlNode *node, struct std_qbv_conf *admin_conf,
 			strcat(node_path, "(");
 			strcat(node_path, ele_val);
 			strcat(node_path, ")");
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			if ((uint32_t)tmp != list_index) {
 				sprintf(err_msg,
 					"'%s' in '%s' is not continuous!",
@@ -224,7 +220,10 @@ int parse_max_sdu_table(xmlNode *node, struct std_qbv_conf *admin_conf,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else if (traffic_class_index == 1) {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				admin_conf->qbv_conf.maxsdu = (uint32_t)tmp;
 			}
 		}
@@ -270,17 +269,20 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			if (strlen(ele_val) > 7)
-				tmp = strtoul(ele_val, NULL, 2);
-			else
-				tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U8, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			admin_conf->qbv_conf.admin.gate_states = (uint8_t) tmp;
 		} else if (strcmp(content, "admin-control-list-length") == 0) {
 			rc = xml_read_field(tmp_node, content,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			admin_conf->qbv_conf.admin.control_list_length = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
 			strcpy(path, node_path);
@@ -295,7 +297,10 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&tmp, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			admin_conf->qbv_conf.admin.cycle_time_extension = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-base-time") == 0) {
 			strcpy(path, node_path);

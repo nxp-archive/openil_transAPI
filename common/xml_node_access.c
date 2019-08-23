@@ -12,6 +12,8 @@
 #include <libnetconf_xml.h>
 #include <pthread.h>
 #include <platform.h>
+#include <errno.h>
+#include <xml_node_access.h>
 
 int xml_read_field(xmlNode *node, char *field_name, char *data,
 	char *err_msg, char *node_path)
@@ -78,13 +80,19 @@ int get_cycle_time(xmlNode *node, uint32_t *cycle_time,
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			num = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&num, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 		} else if (strcmp(content, "denominator") == 0) {
 			rc = xml_read_field(node, "denominator",
 					    ele_val, err_msg, node_path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			den = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+					&den, err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			if (!den) {
 				nc_verb_verbose("Invalid '%s' in '%s'",
 						content, node_path);
@@ -158,4 +166,124 @@ void str_del_last_key(char *str)
 		char_ptr--;
 	}
 	*char_ptr = 0;
+}
+
+/**
+ * @brief convert string to number in unsigned long type
+ */
+int str_to_num(char *node_name, int type, char *str, uint64_t *num,
+		char *err_msg, char *node_path)
+{
+	char *char_ptr;
+	char ch;
+	int len;
+	int base = 0;
+	int i;
+
+	char_ptr = str;
+	len = strlen(str);
+	if ((strncmp(str, "0x", 2) == 0) || (strncmp(str, "0X", 2) == 0)) {
+		char_ptr += 2;
+		for (i = 2; i < len; i++) {
+			ch = *char_ptr;
+			if ((ch < '0') || ((ch > '9') && (ch < 'A')) ||
+			    ((ch > 'F') && (ch < 'a')) || (ch > 'f'))
+				goto err1;
+
+			char_ptr++;
+		}
+		base = 16;
+		goto convert;
+	}
+
+	char_ptr = str;
+	char_ptr += len - 1;
+	ch = *char_ptr;
+	if ((ch == 'b') || (ch == 'B')) {
+		char_ptr = str;
+		for (i = 0; i < len - 1; i++) {
+			ch = *char_ptr;
+			if ((ch < '0') || (ch > '1'))
+				goto err1;
+
+			char_ptr++;
+		}
+		base = 2;
+		goto convert;
+	}
+
+	char_ptr = str;
+	if (*char_ptr == '0') {
+		char_ptr++;
+		for (i = 1; i < len; i++) {
+			ch = *char_ptr;
+			if ((ch < '0') || (ch > '7'))
+				goto err1;
+
+			char_ptr++;
+		}
+		base = 8;
+		goto convert;
+	}
+
+	char_ptr = str;
+	for (i = 0; i < len; i++) {
+		ch = *char_ptr;
+		if ((ch < '0') || (ch > '9'))
+			goto err1;
+
+		char_ptr++;
+	}
+	base = 10;
+
+convert:
+	errno = 0;
+	*num = strtoul(str, NULL, base);
+	if (errno == ERANGE)
+		goto err2;
+	// check type limit
+	switch (type) {
+	case NUM_TYPE_S8:
+		if ((*num < -127) || (*num > 127))
+			goto err2;
+		break;
+	case NUM_TYPE_U8:
+		if (*num > 255)
+			goto err2;
+		break;
+	case NUM_TYPE_S16:
+		if ((*num < -32767) || (*num > 32767))
+			goto err2;
+		break;
+	case NUM_TYPE_U16:
+		if (*num > 65535)
+			goto err2;
+		break;
+	case NUM_TYPE_S32:
+		if ((*num < -2147483647) || (*num > 2147483647))
+			goto err2;
+		break;
+	case NUM_TYPE_U32:
+		if (*num > 4294967295)
+			goto err2;
+		break;
+	case NUM_TYPE_S64:
+		if ((*num < -9223372036854775807) ||
+		    (*num > 9223372036854775807))
+			goto err2;
+		break;
+	case NUM_TYPE_U64:
+		if (*num > 0xFFFFFFFFFFFFFFFF)
+			goto err2;
+		break;
+	default:
+		goto err1;
+	}
+	return 0;
+err1:
+	sprintf(err_msg, "Invalid '%s' in '%s'", node_name, node_path);
+	return -1;
+err2:
+	sprintf(err_msg, "'%s' in '%s' out of range!", node_name, node_path);
+	return -1;
 }

@@ -250,7 +250,10 @@ int parse_null_streamid_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.nid.vid = (uint16_t)tmp;
 		}
 	}
@@ -324,7 +327,10 @@ int parse_smac_vlan_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.sid.vid = (uint16_t)tmp;
 		}
 	}
@@ -399,7 +405,10 @@ int parse_dmac_vlan_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.did.down_vid = (uint16_t)tmp;
 		} else if (strcmp(content, "down-priority") == 0) {
 			rc = xml_read_field(tmp_node, content,
@@ -407,7 +416,10 @@ int parse_dmac_vlan_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U8, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.did.down_prio = (uint8_t)tmp;
 		} else if (strcmp(content, "up-dest-address") == 0) {
 			rc = xml_read_field(tmp_node, content, ele_val,
@@ -449,7 +461,10 @@ int parse_dmac_vlan_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.did.up_vid = (uint16_t)tmp;
 		} else if (strcmp(content, "up-priority") == 0) {
 			rc = xml_read_field(tmp_node, content,
@@ -457,7 +472,10 @@ int parse_dmac_vlan_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U8, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.did.up_prio = (uint8_t)tmp;
 		}
 	}
@@ -533,7 +551,10 @@ int parse_stream_ip_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.iid.vid = (uint16_t)tmp;
 		} else if (strcmp(content, "source-ip-address") == 0) {
 			strcpy(path, node_path);
@@ -563,7 +584,10 @@ int parse_stream_ip_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.iid.dscp = (uint16_t)tmp;
 		} else if (strcmp(content, "next-protocol") == 0) {
 			rc = xml_read_field(tmp_node, content,
@@ -592,7 +616,10 @@ int parse_stream_ip_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.iid.sport = (uint16_t)tmp;
 		} else if (strcmp(content, "dest-port") == 0) {
 			rc = xml_read_field(tmp_node, content, ele_val,
@@ -600,7 +627,10 @@ int parse_stream_ip_params(xmlNode *node,
 			if (rc != EXIT_SUCCESS)
 				goto out;
 
-			tmp = strtoul(ele_val, NULL, 0);
+			rc = str_to_num(content, NUM_TYPE_U16, ele_val, &tmp,
+					err_msg, node_path);
+			if (rc < 0)
+				goto out;
 			stream->cbconf.para.iid.dport = (uint16_t)tmp;
 		}
 	}
@@ -635,7 +665,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->index = (uint32_t)tmp;
 				entry->enable = TRUE;
 			}
@@ -645,7 +678,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->cbconf.handle = (uint32_t)(tmp);
 			}
 		} else if (strcmp(content,
@@ -655,7 +691,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->cbconf.ifac_oport = (uint32_t)(tmp);
 			}
 		} else if (strcmp(content,
@@ -665,7 +704,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->cbconf.ofac_oport = (uint32_t)(tmp);
 			}
 		} else if (strcmp(content,
@@ -675,7 +717,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->cbconf.ifac_iport = (uint32_t)(tmp);
 			}
 		} else if (strcmp(content,
@@ -685,7 +730,10 @@ int parse_stream_id_table(xmlNode *node,
 			if (rc != EXIT_SUCCESS) {
 				goto out;
 			} else {
-				tmp = strtoul(ele_val, NULL, 0);
+				rc = str_to_num(content, NUM_TYPE_U32, ele_val,
+						&tmp, err_msg, node_path);
+				if (rc < 0)
+					goto out;
 				entry->cbconf.ofac_iport = (uint32_t)(tmp);
 			}
 		} else if (strcmp(content, "identification-type") == 0) {
