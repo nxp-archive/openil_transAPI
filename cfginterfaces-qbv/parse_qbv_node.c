@@ -239,11 +239,28 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 	int rc = EXIT_SUCCESS;
 	char *content;
 	uint32_t list_index = 0;
+	uint32_t list_len = 0;
 	xmlNode *tmp_node = node;
 	uint64_t tmp;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
 
+	/* Get admin-control-list-length node */
+	tmp_node = get_child_node(node, "admin-control-list-length");
+	if (!tmp_node) {
+		goto parse_loop;
+	}
+	rc = xml_read_field(tmp_node, "admin-control-list-length",
+			    ele_val, err_msg, node_path);
+	if (rc != EXIT_SUCCESS)
+		goto out;
+	rc = str_to_num("admin-control-list-length", NUM_TYPE_U32, ele_val,
+			&tmp, err_msg, node_path);
+	if (rc < 0)
+		goto out;
+	admin_conf->qbv_conf.admin.control_list_length = (uint32_t)tmp;
+	list_len = (uint32_t)tmp;
+parse_loop:
 	for (tmp_node = node->children; tmp_node != NULL;
 	     tmp_node = tmp_node->next) {
 		if (tmp_node->type != XML_ELEMENT_NODE)
@@ -259,6 +276,7 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 				admin_conf->qbv_conf.gate_enabled = TRUE;
 			} else if (strcmp(ele_val, "false") == 0) {
 				admin_conf->qbv_conf.gate_enabled = FALSE;
+				return rc; // don't need to parse other params
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -274,16 +292,6 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			if (rc < 0)
 				goto out;
 			admin_conf->qbv_conf.admin.gate_states = (uint8_t) tmp;
-		} else if (strcmp(content, "admin-control-list-length") == 0) {
-			rc = xml_read_field(tmp_node, content,
-					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS)
-				goto out;
-			rc = str_to_num(content, NUM_TYPE_U32, ele_val,
-					&tmp, err_msg, node_path);
-			if (rc < 0)
-				goto out;
-			admin_conf->qbv_conf.admin.control_list_length = (uint32_t)tmp;
 		} else if (strcmp(content, "admin-cycle-time") == 0) {
 			strcpy(path, node_path);
 			strcat(path, "/");
@@ -329,12 +337,13 @@ int parse_gate_paras(xmlNode *node, struct std_qbv_conf *admin_conf,
 			strcpy(path, node_path);
 			strcat(path, "/");
 			strcat(path, content);
+			if (list_index >= list_len)
+				continue;
 			rc = qbv_parse_admin_control_list(tmp_node, admin_conf,
 				list_index, err_msg, path);
 			if (rc != EXIT_SUCCESS)
 				goto out;
-			else
-				list_index++;
+			list_index++;
 		}
 	}
 out:

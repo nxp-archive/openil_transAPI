@@ -678,9 +678,25 @@ int parse_stream_gate_table(xmlNode *node,
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
 	struct std_qci_psfp_sgi *cur_sgi_ptr = sgi_table->sgi_ptr;
+	uint32_t list_len = 0;
 
 	nc_verb_verbose("%s is called", __func__);
-	tmp_node = node->children;
+	/* Get admin-control-list-length node */
+	tmp_node = get_child_node(node, "admin-control-list-length");
+	if (!tmp_node) {
+		goto pare_loop;
+	}
+	rc = xml_read_field(tmp_node, "admin-control-list-length",
+			    ele_val, err_msg, node_path);
+	if (rc != EXIT_SUCCESS)
+		goto out;
+	rc = str_to_num("admin-control-list-length", NUM_TYPE_U8, ele_val, &tmp,
+			err_msg, node_path);
+	if (rc < 0)
+		goto out;
+	cur_sgi_ptr->sgiconf.admin.control_list_length = (uint8_t)(tmp);
+	list_len = (uint32_t)(tmp);
+pare_loop:
 	for (tmp_node = node->children; tmp_node != NULL;
 	     tmp_node = tmp_node->next) {
 		if (tmp_node->type != XML_ELEMENT_NODE)
@@ -708,6 +724,7 @@ int parse_stream_gate_table(xmlNode *node,
 				sgi_table->sgi_ptr->enable = 1;
 			} else if (strcmp(ele_val, "false") == 0) {
 				sgi_table->sgi_ptr->enable = 0;
+				return rc;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -758,18 +775,9 @@ int parse_stream_gate_table(xmlNode *node,
 				rc = EXIT_FAILURE;
 				goto out;
 			}
-		} else if (strcmp(content, "admin-control-list-length") == 0) {
-			rc = xml_read_field(tmp_node, content,
-					    ele_val, err_msg, node_path);
-			if (rc != EXIT_SUCCESS)
-				goto out;
-
-			rc = str_to_num(content, NUM_TYPE_U8, ele_val, &tmp,
-					err_msg, node_path);
-			if (rc < 0)
-				goto out;
-			cur_sgi_ptr->sgiconf.admin.control_list_length = (uint8_t)(tmp);
 		} else if (strcmp(content, "admin-control-list") == 0) {
+			if (list_index >= list_len)
+				continue;
 			strcpy(path, node_path);
 			strcat(path, "/");
 			strcat(path, content);
