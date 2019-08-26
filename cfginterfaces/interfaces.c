@@ -22,6 +22,8 @@
 #include "xml_node_access.h"
 
 static int cfg_change_ind;
+static XMLDIFF_OP if_qbv_op;
+static XMLDIFF_OP if_qbu_op;
 
 /* transAPI version which must be compatible with libnetconf */
 int transapi_version = 6;
@@ -84,6 +86,8 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	xmlInitParser();
 	config_modified = 0;
 	cfg_change_ind = 0;
+	if_qbv_op = 0;
+	if_qbu_op = 0;
 	/* Init pthread mutex on datastore */
 	pthread_mutex_init(&datastore_mutex, NULL);
 
@@ -224,6 +228,7 @@ int callback_qbv(__attribute__((unused)) void **data,
 
 	//nc_verb_verbose("%s is called", __func__);
 	cfg_change_ind |= QBV_MASK;
+	if_qbv_op = op;
 
 	return rc;
 }
@@ -238,6 +243,7 @@ int callback_qbu(__attribute__((unused)) void **data,
 
 	//nc_verb_verbose("%s is called", __func__);
 	cfg_change_ind |= QBU_MASK;
+	if_qbu_op = op;
 
 	return rc;
 }
@@ -256,25 +262,14 @@ int callback_interface(__attribute__((unused)) void **data,
 	char err_msg[MAX_ELEMENT_LENGTH];
 	int rc = EXIT_SUCCESS;
 	int disable = 0;
+	int enable = 0;
 	char init_socket = 0;
 	char ifname[MAX_IF_NAME_LENGTH] = {0};
 	char path[MAX_PATH_LENGTH];
 
 	nc_verb_verbose("%s is called", __func__);
-
-	if (op & XMLDIFF_REM) {
-		if (!old_node) {
-			node = new_node;
-			disable = 1;
-		} else {
-			node = old_node;
-		}
-		nc_verb_verbose("remove operation");
-	} else {
-		node = new_node;
-		nc_verb_verbose("modify operation");
-	}
 	/* get interface's name */
+	node = (op & XMLDIFF_REM)?old_node:new_node;
 	name_node = get_child_node(node, "name");
 	rc = xml_read_field(name_node, "name", ifname, NULL, NULL);
 	if (rc != EXIT_SUCCESS) {
@@ -290,6 +285,23 @@ int callback_interface(__attribute__((unused)) void **data,
 	/* check qbv configuration */
 	if (cfg_change_ind & QBV_MASK) {
 		cfg_change_ind &= ~QBV_MASK;
+		if (if_qbv_op & XMLDIFF_REM) {
+			if (!old_node) {
+				sprintf(err_msg, "trying to remove a Nonexistent Qbv node");
+				rc = EXIT_FAILURE;
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
+		if (node == NULL) {
+			nc_verb_verbose("null node");
+			goto out;
+		}
 		/* applying memory for qbv configuration data */
 		qbv_entry = (struct tsn_qbv_entry *)malloc(MAX_ENTRY_SIZE);
 		if (qbv_entry == NULL) {
@@ -306,14 +318,10 @@ int callback_interface(__attribute__((unused)) void **data,
 			nc_verb_verbose("set err ind");
 			goto out;
 		}
-		if (disable)
-			qbv_conf.qbv_conf.gate_enabled = FALSE;
 
 		/* set new qbv configuration */
-		//rc = tsn_qos_port_qbv_status_get("eno0", &qbvstatus);
-		rc = tsn_qos_port_qbv_set(ifname,
-					  &qbv_conf.qbv_conf,
-					  qbv_conf.qbv_conf.gate_enabled);
+		enable = disable?0:qbv_conf.qbv_conf.gate_enabled;
+		rc = tsn_qos_port_qbv_set(ifname, &qbv_conf.qbv_conf, enable);
 		free(qbv_entry);
 
 		if (rc < 0) {
@@ -325,15 +333,31 @@ int callback_interface(__attribute__((unused)) void **data,
 
 	/* check qbu configuration */
 	if (cfg_change_ind & QBU_MASK) {
-		cfg_change_ind &= ~QBV_MASK;
-
+		cfg_change_ind &= ~QBU_MASK;
+		if (if_qbu_op & XMLDIFF_REM) {
+			if (!old_node) {
+				sprintf(err_msg, "trying to remove a Nonexistent Qbu node");
+				rc = EXIT_FAILURE;
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
+		if (node == NULL) {
+			nc_verb_verbose("null node");
+			goto out;
+		}
 		rc = parse_qbu_node(node, &qbu_conf, err_msg, path);
 		if (rc != EXIT_SUCCESS)
 			goto out;
-		if (disable)
-			qbu_conf.pt_vector = 0;
 
 		/* set new qbu configuration */
+		if (disable)
+			qbu_conf.pt_vector = 0;
 		rc = tsn_qbu_set(ifname, qbu_conf.pt_vector);
 
 		if (rc < 0) {

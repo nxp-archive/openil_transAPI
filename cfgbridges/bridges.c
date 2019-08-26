@@ -32,6 +32,10 @@ int config_modified;
 pthread_mutex_t datastore_mutex;
 
 static int bridge_cfg_change_ind;
+static XMLDIFF_OP bridge_stream_filters_op;
+static XMLDIFF_OP bridge_stream_gates_op;
+static XMLDIFF_OP bridge_flow_meters_op;
+static XMLDIFF_OP bridge_stream_id_op;
 
 /*
  * Determines the callbacks order.
@@ -82,6 +86,10 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	/* Init libxml */
 	xmlInitParser();
 	bridge_cfg_change_ind = 0;
+	bridge_stream_filters_op = 0;
+	bridge_stream_gates_op = 0;
+	bridge_flow_meters_op = 0;
+	bridge_stream_id_op = 0;
 	config_modified = 0;
 	/* Init pthread mutex on datastore */
 	pthread_mutex_init(&datastore_mutex, NULL);
@@ -268,7 +276,9 @@ int callback_bridge_flow_meters(__attribute__((unused)) void **data,
 {
 	int rc = EXIT_SUCCESS;
 
+	//nc_verb_verbose("%s is called", __func__);
 	bridge_cfg_change_ind |= QCI_FMI_MASK;
+	bridge_flow_meters_op = op;
 
 	return rc;
 }
@@ -281,7 +291,9 @@ int callback_bridge_stream_gates(__attribute__((unused)) void **data,
 {
 	int rc = EXIT_SUCCESS;
 
+	//nc_verb_verbose("%s is called", __func__);
 	bridge_cfg_change_ind |= QCI_SGI_MASK;
+	bridge_stream_gates_op = op;
 
 	return rc;
 }
@@ -293,7 +305,9 @@ int callback_bridge_stream_filters(__attribute__((unused)) void **data,
 {
 	int rc = EXIT_SUCCESS;
 
+	//nc_verb_verbose("%s is called", __func__);
 	bridge_cfg_change_ind |= QCI_SFI_MASK;
+	bridge_stream_filters_op = op;
 
 	return rc;
 }
@@ -305,7 +319,9 @@ int callback_bridge_stream_id(__attribute__((unused)) void **data,
 {
 	int rc = EXIT_SUCCESS;
 
+	//nc_verb_verbose("%s is called", __func__);
 	bridge_cfg_change_ind |= CB_MASK;
+	bridge_stream_id_op = op;
 
 	return rc;
 }
@@ -318,6 +334,7 @@ int callback_bridge(__attribute__((unused)) void **data,
 	int rc = EXIT_SUCCESS;
 
 
+	nc_verb_verbose("%s is called", __func__);
 	return rc;
 }
 
@@ -338,19 +355,8 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	char path[MAX_PATH_LENGTH];
 
 	nc_verb_verbose("%s is called", __func__);
-	if (op & XMLDIFF_REM) {
-		if (!old_node) {
-			node = new_node;
-			disable = 1;
-		} else {
-			node = old_node;
-		}
-		nc_verb_verbose("remove operation");
-	} else {
-		node = new_node;
-		nc_verb_verbose("modify operation");
-	}
 	/* get component's name */
+	node = (op & XMLDIFF_REM)?old_node:new_node;
 	name_node = get_child_node(node, "name");
 	rc = xml_read_field(name_node, "name", name, NULL, NULL);
 	if (rc != EXIT_SUCCESS) {
@@ -367,10 +373,28 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* check qci stream filters configuration */
 	if (bridge_cfg_change_ind & QCI_SFI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SFI_MASK;
+		if (bridge_stream_filters_op & XMLDIFF_REM) {
+			if (!old_node) {
+				rc = EXIT_FAILURE;
+				sprintf(err_msg, "trying to remevo Nonexistent 'stream-filters' node");
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
 		sub_node = get_child_node(node, "stream-filters");
+		if (sub_node == NULL) {
+			rc = EXIT_FAILURE;
+			sprintf(err_msg, "can't find 'stream-filters' node");
+			goto out;
+		}
 		strcat(path, "/stream-filters");
-		rc = stream_filters_handle(name, sub_node,
-					   err_msg, path, disable);
+		rc = stream_filters_handle(name, sub_node, err_msg,
+					   path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -378,7 +402,25 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* check qci stream gates configuration */
 	if (bridge_cfg_change_ind & QCI_SGI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SGI_MASK;
+		if (bridge_stream_gates_op & XMLDIFF_REM) {
+			if (!old_node) {
+				rc = EXIT_FAILURE;
+				sprintf(err_msg, "trying to remevo Nonexistent 'stream-gates' node");
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
 		sub_node = get_child_node(node, "stream-gates");
+		if (sub_node == NULL) {
+			rc = EXIT_FAILURE;
+			sprintf(err_msg, "can't find 'stream-gates' node");
+			goto out;
+		}
 		strcat(path, "/stream-gates");
 		rc = stream_gates_handle(name, sub_node, err_msg,
 					 path, disable);
@@ -389,10 +431,27 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* check qci flow meters configuration */
 	if (bridge_cfg_change_ind & QCI_FMI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_FMI_MASK;
+		if (bridge_flow_meters_op & XMLDIFF_REM) {
+			if (!old_node) {
+				rc = EXIT_FAILURE;
+				sprintf(err_msg, "trying to remevo Nonexistent flow-meters node");
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
 		sub_node = get_child_node(node, "flow-meters");
+		if (sub_node == NULL) {
+			rc = EXIT_FAILURE;
+			sprintf(err_msg, "can't find 'flow-meters' node");
+			goto out;
+		}
 		strcat(path, "/flow-meters");
-		rc = flowmeters_handle(name, sub_node, err_msg,
-				       path, disable);
+		rc = flowmeters_handle(name, sub_node, err_msg, path, disable);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -400,7 +459,25 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* check cb stream filters identification configuration */
 	if (bridge_cfg_change_ind & CB_MASK) {
 		bridge_cfg_change_ind &= ~CB_MASK;
+		if (bridge_stream_id_op & XMLDIFF_REM) {
+			if (!old_node) {
+				rc = EXIT_FAILURE;
+				sprintf(err_msg, "trying to remevo Nonexistent 'streams' node");
+				goto out;
+			}
+			node = old_node;
+			disable = 1;
+			nc_verb_verbose("use old node");
+		} else {
+			node = new_node;
+			nc_verb_verbose("use new node");
+		}
 		sub_node = get_child_node(node, "streams");
+		if (sub_node == NULL) {
+			rc = EXIT_FAILURE;
+			sprintf(err_msg, "can't find 'streams' node");
+			goto out;
+		}
 		strcat(path, "/streams");
 		rc = cbstreamid_handle(name, sub_node, err_msg, path, disable);
 		if (rc != EXIT_SUCCESS)
@@ -478,7 +555,7 @@ struct transapi_data_callbacks clbks =  {
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-gates/sfsg:stream-gate-instance-table/psfp:admin-control-list/psfp:parameters/psfp:interval-octet-max", .func = callback_bridge_stream_gates},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters", .func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:filter-specification-list/psfp:flow-meter-ref",
-			.func = callback_bridge_flow_meters},
+			.func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table",
 			.func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:flow-meter-instance-id",
