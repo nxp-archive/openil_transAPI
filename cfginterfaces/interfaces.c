@@ -286,14 +286,7 @@ int callback_interface(__attribute__((unused)) void **data,
 	if (cfg_change_ind & QBV_MASK) {
 		cfg_change_ind &= ~QBV_MASK;
 		if (if_qbv_op & XMLDIFF_REM) {
-			if (!old_node) {
-				sprintf(err_msg, "trying to remove a Nonexistent Qbv node");
-				rc = EXIT_FAILURE;
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
@@ -335,14 +328,7 @@ int callback_interface(__attribute__((unused)) void **data,
 	if (cfg_change_ind & QBU_MASK) {
 		cfg_change_ind &= ~QBU_MASK;
 		if (if_qbu_op & XMLDIFF_REM) {
-			if (!old_node) {
-				sprintf(err_msg, "trying to remove a Nonexistent Qbu node");
-				rc = EXIT_FAILURE;
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
