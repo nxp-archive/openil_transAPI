@@ -31,4 +31,6 @@ int get_cycle_time(xmlNode *node, uint32_t *cycle_time, char *err_msg,
 void str_del_last_key(char *str);
 int str_to_num(char *node_name, int type, char *str, uint64_t *num,
 		char *err_msg, char *node_path);
+xmlNodePtr find_node_in_list(xmlNodePtr lpnode, char *key, xmlNodePtr node);
+int update_interfaces(xmlNodePtr base, xmlNodePtr new);
 #endif

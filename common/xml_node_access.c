@@ -22,6 +22,10 @@ int xml_read_field(xmlNode *node, char *field_name, char *data,
 	int       rc = EXIT_SUCCESS;
 	xmlNode  *cur;
 
+	if (!node || !field_name || !data) {
+		nc_verb_verbose("null input");
+		return -1;
+	}
 	for (cur = node; cur != NULL; cur = cur->next) {
 		if (xmlStrcmp(cur->name, (const xmlChar *)field_name) != 0)
 			continue;
@@ -41,7 +45,6 @@ out:
 	xmlFree(value);
 	return rc;
 }
-
 
 xmlNodePtr get_child_node(xmlNodePtr parent_node, const char *child_node_name)
 {
@@ -121,6 +124,7 @@ xmlNodePtr create_root_in_doc(xmlDocPtr doc, char *rootname, char *ns)
 	xmlDocSetRootElement(doc, root);
 	return root;
 }
+
 xmlNodePtr create_root_in_doc_no_ns(xmlDocPtr doc, char *rootname)
 {
 	xmlNodePtr root;
@@ -286,4 +290,91 @@ err1:
 err2:
 	sprintf(err_msg, "'%s' in '%s' out of range!", node_name, node_path);
 	return -1;
+}
+
+xmlNodePtr find_node_in_list(xmlNodePtr lpnode, char *key, xmlNodePtr node)
+{
+	char *content;
+	xmlNodePtr tmp;
+	xmlNodePtr keynode;
+	char keyval[20];
+	char tmpkey[20];
+
+	nc_verb_verbose("%s is called", __func__);
+	if (!lpnode || !key || !node)
+		return NULL;
+
+	keynode = get_child_node(node, key);
+	if (!keynode) {
+		nc_verb_verbose("get key node failed");
+		return NULL;
+	}
+	xml_read_field(keynode, key, keyval, NULL, NULL);
+
+	for (tmp = lpnode->children; tmp != NULL; tmp = tmp->next) {
+		if (tmp->type != XML_ELEMENT_NODE)
+			continue;
+		content = (char *)tmp->name;
+		if (strcmp(content, (char *)node->name) == 0) {
+			keynode = get_child_node(tmp, key);
+			if (!keynode) {
+				nc_verb_verbose("loop get key node failed");
+				return NULL;
+			}
+			xml_read_field(keynode, key, tmpkey, NULL, NULL);
+			if (strcmp(keyval, tmpkey) == 0) {
+				nc_verb_verbose("find node in plnode");
+				return tmp;
+			}
+		}
+	}
+	return NULL;
+}
+
+void xml_repalce_same_node(xmlNodePtr target, xmlNodePtr src)
+{
+	xmlNodePtr target_child;
+	xmlNodePtr src_child;
+
+	nc_verb_verbose("%s is called", __func__);
+	if (!target || !src)
+		return;
+	for (src_child = src->children; src_child != NULL;
+	     src_child = src_child->next){
+		if (src_child->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp((char *)src_child->name, "name") == 0 ||
+		    strcmp((char *)src_child->name, "enabled") == 0)
+			continue;
+		target_child =  get_child_node(target, (char *)src_child->name);
+		if (target) {
+			nc_verb_verbose("find same node");
+			xmlUnlinkNode(target_child);
+			xmlFreeNode(target_child);
+		}
+		xmlAddChild(target, xmlCopyNodeList(src_child));
+	}
+}
+
+int update_interfaces(xmlNodePtr base, xmlNodePtr new)
+{
+	xmlNodePtr if_new;
+	xmlNodePtr target_node;
+
+	nc_verb_verbose("%s is called", __func__);
+	for (if_new = new->children; if_new != NULL; if_new = if_new->next) {
+		if (if_new->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp((char *)(if_new->name), "interface"))
+			continue;
+		target_node = find_node_in_list(base, "name", if_new);
+		if (!target_node) {
+			nc_verb_verbose("not find ,add new!");
+			xmlAddChild(base, if_new);
+		} else {
+			nc_verb_verbose("find ,update it!");
+			xml_repalce_same_node(target_node, if_new);
+		}
+	}
+	return EXIT_SUCCESS;
 }

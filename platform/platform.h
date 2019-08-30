@@ -41,5 +41,8 @@ struct ieee_ptp_time {
 
 int enable_timestamp_on_switch(void);
 int get_port_name_list(char *port_name_list, unsigned int type);
-
+void init_tsn_mutex(void);
+void destroy_tsn_mutex(void);
+void init_tsn_socket(void);
+void close_tsn_socket(void);
 #endif

@@ -10,6 +10,7 @@
 #include <sys/inotify.h>
 #include <libnetconf_xml.h>
 #include <pthread.h>
+#include <tsn/genl_tsn.h>
 #include "platform.h"
 
 #define GET_SWITCH_PORT_NAME_CMD "ls /sys/bus/pci/devices/0000:00:00.5/net/"
@@ -137,3 +138,26 @@ out:
 	return rc;
 }
 
+pthread_mutex_t tsn_mutex;
+
+void init_tsn_mutex(void)
+{
+	pthread_mutex_init(&tsn_mutex, NULL);
+}
+
+void destroy_tsn_mutex(void)
+{
+	pthread_mutex_destroy(&tsn_mutex);
+}
+
+void init_tsn_socket(void)
+{
+	pthread_mutex_lock(&tsn_mutex);
+	genl_tsn_init();
+}
+
+void close_tsn_socket(void)
+{
+	genl_tsn_close();
+	pthread_mutex_unlock(&tsn_mutex);
+}

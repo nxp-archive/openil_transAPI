@@ -350,8 +350,148 @@ out:
 	return rc;
 }
 
+int probe_qbv_cfg(xmlNodePtr xml_node, cJSON *json_ob)
+{
+	int list_cnt;
+	cJSON *oper = NULL, *item =  NULL;
+	cJSON *list = NULL, *time = NULL;
+	xmlNodePtr time_node;
+	xmlNodePtr list_node;
+	xmlNodePtr gate_para_node;
+	xmlNodePtr temp_node;
+	char temp[80] = {0};
+	uint64_t second = 0;
+	uint64_t nanosecond = 0;
+	uint64_t temp_ul = 0;
+	uint32_t temp_int = 0;
+	int i = 0;
+	int cnt = 0;
+	xmlNsPtr ns;
 
-int probe_qbv_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
+	nc_verb_verbose("%s is called", __func__);
+	gate_para_node = xmlNewChild(xml_node, NULL, BAD_CAST "gate-parameters",
+				     NULL);
+	ns = xmlNewNs(gate_para_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
+	xmlSetNs(gate_para_node, ns);
+	oper = cJSON_GetObjectItem(json_ob, "oper");
+	if (!oper)
+		goto out;
+	item = cJSON_GetObjectItem(oper, "listcount");
+	if (item) {
+		temp_ul = (uint64_t)(item->valuedouble);
+		if (!temp_ul) {
+			xmlNewTextChild(gate_para_node, NULL,
+					BAD_CAST "gate-enabled",
+					BAD_CAST "false");
+			cnt++;
+			goto out;
+		}
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewTextChild(gate_para_node, NULL,
+				BAD_CAST "admin-control-list-length",
+				BAD_CAST temp);
+	}
+	list_cnt = (int)(temp_ul);
+	item = cJSON_GetObjectItem(json_ob, "disable");
+	if (item) {
+		xmlNewTextChild(gate_para_node, NULL,
+				BAD_CAST "gate-enabled", BAD_CAST "false");
+		cnt++;
+		goto out;
+	} else {
+		xmlNewTextChild(gate_para_node, NULL,
+				BAD_CAST "gate-enabled", BAD_CAST "true");
+		cnt++;
+	}
+
+	item = cJSON_GetObjectItem(oper, "gatestate");
+	if (item) {
+		temp_ul = (uint64_t)(item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewTextChild(gate_para_node, NULL,
+				BAD_CAST "admin-gate-states",
+				BAD_CAST temp);
+	}
+	time = cJSON_GetObjectItem(oper, "cycletime");
+	if (time) {
+		temp_node = xmlNewChild(gate_para_node, NULL,
+					BAD_CAST "admin-cycle-time",
+					NULL);
+		temp_ul = (uint64_t)(time->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewTextChild(temp_node, NULL, BAD_CAST "numerator",
+				BAD_CAST temp);
+		xmlNewTextChild(temp_node, NULL,
+				BAD_CAST "denominator",
+				BAD_CAST "1000000000");
+	}
+	item = cJSON_GetObjectItem(oper, "cycletimeext");
+	if (item) {
+		temp_ul = (uint64_t)(item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewTextChild(gate_para_node, NULL,
+				BAD_CAST "admin-cycle-time-extension",
+				BAD_CAST temp);
+	}
+	for (i = 0; i < list_cnt; i++) {
+		list = get_list_item(oper, "list", i);
+		if (list == NULL)
+			goto out;
+
+		list_node = xmlNewChild(gate_para_node, NULL,
+					BAD_CAST "admin-control-list",
+					NULL);
+
+		item = cJSON_GetObjectItem(list, "entryid");
+		if (item) {
+			temp_int = (uint32_t)(item->valuedouble);
+			sprintf(temp, "%d", temp_int);
+			xmlNewTextChild(list_node, NULL,
+					BAD_CAST "index",
+					BAD_CAST temp);
+		}
+		temp_node = xmlNewChild(list_node, NULL,
+					BAD_CAST "set-gate-states", NULL);
+		temp_node = xmlNewChild(temp_node, NULL,
+					BAD_CAST "sgs-params",
+					NULL);
+		item = cJSON_GetObjectItem(list, "gate");
+		if (item) {
+			temp_int = (uint32_t)(item->valuedouble);
+			sprintf(temp, "%d", temp_int);
+			xmlNewTextChild(temp_node, NULL,
+					BAD_CAST "gate-states-value",
+					BAD_CAST temp);
+		}
+		item = cJSON_GetObjectItem(list, "timeperiod");
+		if (item) {
+			temp_int = (uint32_t)(item->valuedouble);
+			sprintf(temp, "%d", temp_int);
+			xmlNewTextChild(temp_node, NULL,
+					BAD_CAST "time-interval-value",
+					BAD_CAST temp);
+		}
+	}
+	item = cJSON_GetObjectItem(oper, "basetime");
+	if (item) {
+		second = ((uint64_t)item->valuedouble/1000000000);
+		nanosecond = ((uint64_t)item->valuedouble%1000000000);
+		time_node = xmlNewChild(gate_para_node, NULL,
+					BAD_CAST "admin-base-time",
+					NULL);
+		sprintf(temp, "%ld", second);
+		xmlNewTextChild(time_node, NULL, BAD_CAST "seconds",
+				BAD_CAST temp);
+		sprintf(temp, "%ld", nanosecond);
+		xmlNewTextChild(time_node, NULL,
+				BAD_CAST "fractional-seconds",
+				BAD_CAST temp);
+	}
+out:
+	return cnt;
+}
+
+int probe_qbv_st(xmlNodePtr xml_node, cJSON *json_ob)
 {
 	int list_cnt;
 	cJSON *oper = NULL, *item =  NULL;
@@ -517,13 +657,14 @@ out:
 	return cnt;
 }
 
-int get_qbv_status(char *port, xmlNodePtr node)
+int get_qbv_info(char *port, xmlNodePtr node, int mode)
 {
 	FILE *fp;
 	int rc = EXIT_SUCCESS;
 	int len = 0;
 	cJSON *json;
 	struct tsn_qbv_status qbvstaus;
+	struct tsn_qbv_conf qbvconf;
 	char *json_data;
 
 	nc_verb_verbose("%s is called", __func__);
@@ -531,9 +672,16 @@ int get_qbv_status(char *port, xmlNodePtr node)
 	if (port == NULL)
 		return EXIT_FAILURE;
 
-	genl_tsn_init();
-	rc = tsn_qos_port_qbv_status_get(port, &qbvstaus);
-	genl_tsn_close();
+	init_tsn_socket();
+	nc_verb_verbose("port name is %s", port);
+	if (mode == 1) {
+		rc = tsn_qos_port_qbv_status_get(port, &qbvstaus);
+		if (rc < 0)
+			rc = tsn_qos_port_qbv_get(port, &qbvconf);
+	} else {
+		rc = tsn_qos_port_qbv_status_get(port, &qbvstaus);
+	}
+	close_tsn_socket();
 	if (rc < 0)
 		goto out;
 
@@ -547,8 +695,12 @@ int get_qbv_status(char *port, xmlNodePtr node)
 		if (json_data) {
 			fread(json_data, 1, len, fp);
 			json = cJSON_Parse(json_data);
-			if (json)
-				probe_qbv_xml_from_json(node, json);
+			if (json) {
+				if (mode == 1)
+					probe_qbv_cfg(node, json);
+				else
+					probe_qbv_st(node, json);
+			}
 			else
 				nc_verb_verbose("json parse error");
 			cJSON_Delete(json);
@@ -603,4 +755,3 @@ int parse_qbv_node(xmlNode *node, struct std_qbv_conf *admin_conf,
 out:
 	return rc;
 }
-

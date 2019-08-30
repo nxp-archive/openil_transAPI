@@ -139,14 +139,48 @@ out:
 }
 
 
-int probe_qbu_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
+int get_qbu_cfg_xml(xmlNodePtr xml_node, int pts)
 {
+	int i;
+	xmlNodePtr table;
+	xmlNodePtr frame_para_node;
+	char valstr[32];
+	uint32_t preemp_st = 0;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	frame_para_node = xmlNewChild(xml_node, NULL,
+				     BAD_CAST "frame-preemption-parameters",
+				     NULL);
+	ns = xmlNewNs(frame_para_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
+	xmlSetNs(frame_para_node, ns);
+	for (i = 0; i < 8; i++) {
+		nc_verb_verbose("pts is %d", pts);
+		table = xmlNewChild(frame_para_node, NULL,
+				    BAD_CAST "frame-preemption-status-table",
+				    NULL);
+		sprintf(valstr, "%d", i);
+		xmlNewTextChild(table, NULL,
+				BAD_CAST "traffic-class", BAD_CAST valstr);
+		preemp_st = (pts & (1<<i));
+		nc_verb_verbose("preemp_st is %d", preemp_st);
+		if (preemp_st)
+			sprintf(valstr, "preemptable");
+		else
+			sprintf(valstr, "express");
+		xmlNewTextChild(table, NULL,
+				BAD_CAST "frame-preemption-status",
+				BAD_CAST valstr);
+
+	}
 	return EXIT_SUCCESS;
 }
 
-int get_qbu_status(char *port, xmlNodePtr node)
+int get_qbu_info(char *port, xmlNodePtr node, int mode)
 {
-	return EXIT_SUCCESS;
+	int rc = EXIT_SUCCESS;
+	struct tsn_preempt_status pts;
+
+	rc = tsn_qbu_get_status(port, &pts);
+	return rc;
 }
-
-

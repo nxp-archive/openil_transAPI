@@ -17,7 +17,7 @@ struct std_qbv_conf {
 	struct tsn_qbv_conf qbv_conf;
 };
 
-int get_qbv_status(char *port, xmlNodePtr node);
+int get_qbv_info(char *port, xmlNodePtr node, int mode);
 int parse_qbv_node(xmlNode *node, struct std_qbv_conf *admin_conf,
 	char *err_msg, char *node_path);
 

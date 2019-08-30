@@ -8,6 +8,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/inotify.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
 #include <libxml/tree.h>
 #include <libnetconf_xml.h>
 #include <pthread.h>
@@ -15,15 +19,18 @@
 #include <tsn/genl_tsn.h>
 #include <linux/tsn.h>
 #include <errno.h>
+#include <unistd.h>
 #include "platform.h"
 #include "interfaces.h"
 #include "parse_qbv_node.h"
 #include "parse_qbu_node.h"
 #include "xml_node_access.h"
+#include "json_node_access.h"
 
 static int cfg_change_ind;
 static XMLDIFF_OP if_qbv_op;
 static XMLDIFF_OP if_qbu_op;
+static XMLDIFF_OP if_operating;
 
 /* transAPI version which must be compatible with libnetconf */
 int transapi_version = 6;
@@ -82,14 +89,24 @@ NC_EDIT_ERROPT_TYPE erropt = NC_EDIT_ERROPT_NOTSET;
  */
 int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 {
+	xmlDocPtr  doc;
+	xmlDocPtr  doc_bak;
+	xmlNodePtr root;
+	xmlNodePtr root_bak;
+	xmlNodePtr startup;
+	xmlNodePtr ifs_node = NULL;
+
+	nc_verb_verbose("%s is called", __func__);
 	/* Init libxml */
 	xmlInitParser();
 	config_modified = 0;
 	cfg_change_ind = 0;
 	if_qbv_op = 0;
 	if_qbu_op = 0;
+	if_operating = 0;
 	/* Init pthread mutex on datastore */
 	pthread_mutex_init(&datastore_mutex, NULL);
+	init_tsn_mutex();
 
 	/* TODO: Attempt to load the staging area (if one exists)
 	 * into the initial running config (*running_node).
@@ -100,9 +117,53 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	 * properly (perhaps the format is wrong?).
 	 */
 
-	nc_verb_verbose("%s is called", __func__);
 	enable_timestamp_on_switch();
 
+	nc_verb_verbose("new doc");
+	doc_bak = xmlNewDoc(BAD_CAST "1.0");
+	root_bak = xmlNewNode(NULL, BAD_CAST "datastores");
+	xmlDocSetRootElement(doc_bak, root_bak);
+	xmlNewNs(root_bak, BAD_CAST "urn:cesnet:tmc:datastores:file", NULL);
+	nc_verb_verbose("start interfaces");
+
+	if (access(IF_DS, F_OK) == EXIT_SUCCESS) {
+		nc_verb_verbose("read ds");
+		doc = xmlReadFile(IF_DS, NULL, 0);
+		if (!doc) {
+			nc_verb_verbose("read '%s' failed!", IF_DS);
+			return EXIT_FAILURE;
+		}
+		nc_verb_verbose("read ds root");
+		root = xmlDocGetRootElement(doc);
+		nc_verb_verbose("start get startup node");
+		startup = get_child_node(root, "startup");
+		if (!startup) {
+			nc_verb_verbose("can't find startup node");
+			xmlFreeDoc(doc);
+			return EXIT_FAILURE;
+		}
+		nc_verb_verbose("start get ifs node");
+		ifs_node = get_child_node(startup, "interfaces");
+		if (!ifs_node) {
+			ifs_node = xmlNewChild(root_bak, NULL,
+					       BAD_CAST "interfaces", NULL);
+			xmlNewNs(ifs_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
+		} else {
+			nc_verb_verbose("add ifs node");
+			xmlAddChildList(root_bak, xmlCopyNodeList(ifs_node));
+			ifs_node = get_child_node(root_bak, "interfaces");
+		}
+		xmlFreeDoc(doc);
+	} else {
+		ifs_node = xmlNewChild(root_bak, NULL,
+					  BAD_CAST "interfaces", NULL);
+		xmlNewNs(ifs_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
+	}
+	nc_verb_verbose("start interfaces ns");
+	xmlNewNs(ifs_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
+	xmlNewNs(ifs_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
+	xmlSaveFormatFileEnc(IF_DS_BAK, doc_bak, "UTF-8", 1);
+	xmlFreeDoc(doc_bak);
 	return EXIT_SUCCESS;
 }
 
@@ -114,6 +175,7 @@ void transapi_close(void)
 {
 	xmlCleanupParser();
 	pthread_mutex_destroy(&datastore_mutex);
+	destroy_tsn_mutex();
 	nc_verb_verbose("%s is called", __func__);
 }
 
@@ -151,7 +213,7 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 	xmlDocSetRootElement(doc, root);
 	ifs_node = xmlNewChild(root, NULL, BAD_CAST "interfaces", NULL);
 	ns = xmlNewNs(ifs_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
-	xmlSetNs(if_node, ns);
+	xmlSetNs(ifs_node, ns);
 
 	get_port_name_list(port_name_list, (ENETC_TYPE | SWITCH_TYPE));
 	if (sscanf(port_name_list, "%s %s %s %s %s %s %s %s %s",
@@ -180,7 +242,7 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 				"Failed to create xml node 'qbv'.");
 			goto out;
 		}
-		get_qbv_status(port, if_node);
+		get_qbv_info(port, if_node, 0);
 	}
 out:
 	return(doc);
@@ -248,6 +310,83 @@ int callback_qbu(__attribute__((unused)) void **data,
 	return rc;
 }
 
+void rem_overrun_node(xmlNodePtr sdu_table)
+{
+	xmlNodePtr tmp;
+
+	for (tmp = sdu_table->children; tmp != NULL; tmp = tmp->next) {
+		if (tmp->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp((char *)(tmp->name), "transmission-overrun") == 0) {
+			xmlUnlinkNode(tmp);
+			xmlFreeNode(tmp);
+		}
+	}
+}
+
+void rem_dirty_node(xmlNodePtr ifsnode)
+{
+	xmlNodePtr tmp;
+	xmlNodePtr node;
+	char *name;
+	char *name2;
+
+	for (tmp = ifsnode->children; tmp != NULL; tmp = tmp->next) {
+		if (tmp->type != XML_ELEMENT_NODE)
+			continue;
+		name = (char *)tmp->name;
+		if (strcmp(name, "interface") == 0) {
+			for (node = tmp->children; node != NULL;
+			     node = node->next) {
+				if (node->type != XML_ELEMENT_NODE)
+					continue;
+				name2 = (char *)node->name;
+				if (strcmp(name2, "bridge-port") == 0) {
+					xmlUnlinkNode(node);
+					xmlFreeNode(node);
+				}
+				if (strcmp(name2, "max-sdu-table") == 0)
+					rem_overrun_node(node);
+			}
+		}
+	}
+}
+
+int callback_interfaces(__attribute__((unused)) void **data,
+		__attribute__((unused)) XMLDIFF_OP op,
+		__attribute__((unused)) xmlNodePtr old_node,
+		__attribute__((unused)) xmlNodePtr new_node,
+		__attribute__((unused)) struct nc_err **error)
+{
+	int rc = EXIT_SUCCESS;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr ifs_node;
+	xmlNodePtr tmp;
+
+	nc_verb_verbose("%s is called", __func__);
+	if_operating = 0;
+	pthread_mutex_unlock(&datastore_mutex);
+
+	if ((op & XMLDIFF_REM) == 0) {
+		nc_verb_verbose("save new node");
+		doc = xmlReadFile(IF_DS_BAK, NULL, 0);
+		root = xmlDocGetRootElement(doc);
+		ifs_node = get_child_node(root, "interfaces");
+		if (!ifs_node) {
+			nc_verb_verbose("can't find interfaces node");
+			xmlFreeDoc(doc);
+			return rc;
+		}
+		tmp = xmlCopyNode(new_node, 1);
+		rem_dirty_node(tmp);
+		update_interfaces(ifs_node, tmp);
+		xmlSaveFile(IF_DS_BAK, doc);
+		xmlFreeDoc(doc);
+	}
+	return rc;
+}
+
 int callback_interface(__attribute__((unused)) void **data,
 		__attribute__((unused)) XMLDIFF_OP op,
 		__attribute__((unused)) xmlNodePtr old_node,
@@ -261,13 +400,16 @@ int callback_interface(__attribute__((unused)) void **data,
 	xmlNodePtr node;
 	char err_msg[MAX_ELEMENT_LENGTH];
 	int rc = EXIT_SUCCESS;
-	int disable = 0;
 	int enable = 0;
 	char init_socket = 0;
 	char ifname[MAX_IF_NAME_LENGTH] = {0};
 	char path[MAX_PATH_LENGTH];
 
 	nc_verb_verbose("%s is called", __func__);
+	if (!if_operating) {
+		pthread_mutex_lock(&datastore_mutex);
+		if_operating = 1;
+	}
 	/* get interface's name */
 	node = (op & XMLDIFF_REM)?old_node:new_node;
 	name_node = get_child_node(node, "name");
@@ -280,7 +422,7 @@ int callback_interface(__attribute__((unused)) void **data,
 	sprintf(path, "/interfaces/interface(%s)", ifname);
 
 	/* init socket */
-	genl_tsn_init();
+	init_tsn_socket();
 	init_socket = 1;
 	/* check qbv configuration */
 	if (cfg_change_ind & QBV_MASK) {
@@ -313,7 +455,7 @@ int callback_interface(__attribute__((unused)) void **data,
 		}
 
 		/* set new qbv configuration */
-		enable = disable?0:qbv_conf.qbv_conf.gate_enabled;
+		enable = qbv_conf.qbv_conf.gate_enabled;
 		rc = tsn_qos_port_qbv_set(ifname, &qbv_conf.qbv_conf, enable);
 		free(qbv_entry);
 
@@ -342,8 +484,6 @@ int callback_interface(__attribute__((unused)) void **data,
 			goto out;
 
 		/* set new qbu configuration */
-		if (disable)
-			qbu_conf.pt_vector = 0;
 		rc = tsn_qbu_set(ifname, qbu_conf.pt_vector);
 
 		if (rc < 0) {
@@ -352,14 +492,13 @@ int callback_interface(__attribute__((unused)) void **data,
 			goto out;
 		}
 	}
-
 out:
 	if (rc != EXIT_SUCCESS) {
 		*error = nc_err_new(NC_ERR_OP_FAILED);
 		nc_err_set(*error, NC_ERR_PARAM_MSG, err_msg);
 	}
 	if (init_socket)
-		genl_tsn_close();
+		close_tsn_socket();
 	return rc;
 }
 
@@ -370,9 +509,11 @@ out:
  * DO NOT alter this structure
  */
 struct transapi_data_callbacks clbks =  {
-	.callbacks_count = 20,
+	.callbacks_count = 21,
 	.data = NULL,
 	.callbacks = {
+		{.path = "/if:interfaces",
+			.func = callback_interfaces},
 		{.path = "/if:interfaces/if:interface",
 			.func = callback_interface},
 		{.path = "/if:interfaces/if:interface/sched:gate-parameters",
@@ -421,7 +562,6 @@ preempt:frame-preemption-status", .func = callback_qbu},
 	}
 };
 
-
 /*
  * Structure transapi_rpc_callbacks provides mapping between
  * callbacks and RPC messages.
@@ -435,33 +575,44 @@ struct transapi_rpc_callbacks rpc_clbks = {
 	}
 };
 
-/*
- * Structure transapi_file_callbacks provides mapping between specific files
- * (e.g. configuration file in /etc/) and the callback function executed when
- * the file is modified.
- * The structure is empty by default. Add items, as in example, as you need.
- *
- * Example:
- * int example_callback(const char *filepath,
- *	xmlDocPtr *edit_config, int *exec) {
- *     // do the job with changed file content
- *     // if needed, set edit_config parameter to the edit-config data
- *     //to be applied
- *     // if needed, set exec to 1 to perform consequent transapi callbacks
- *     return 0;
- * }
- *
- * struct transapi_file_callbacks file_clbks = {
- *     .callbacks_count = 1,
- *     .callbacks = {
- *         {.path = "/etc/my_cfg_file", .func = example_callback}
- *     }
- * }
- */
+int ds_bak_file_change_cb(const char *filepath,
+		xmlDocPtr *edit_config, int *exec)
+{
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr interfaces;
+
+	nc_verb_verbose("%s is called", __func__);
+	*exec = 0;
+	if (if_operating)
+		return EXIT_SUCCESS;
+
+	doc = xmlReadFile(IF_DS_BAK, NULL, 0);
+	root = xmlDocGetRootElement(doc);
+	interfaces = get_child_node(root, "interfaces");
+	if (!interfaces) {
+		nc_verb_verbose("get interfaces failed");
+		return EXIT_FAILURE;
+	}
+	*edit_config = xmlNewDoc(BAD_CAST "1.0");
+	xmlDocSetRootElement(*edit_config, xmlCopyNodeList(interfaces));
+	root = xmlDocGetRootElement(*edit_config);
+	if (root) {
+		nc_verb_verbose("find edit root");
+		xmlNewNs(root,
+			 BAD_CAST "urn:ietf:params:xml:ns:netconf:base:1.0",
+			 BAD_CAST "ncop");
+		xmlSetProp(root, BAD_CAST "ncop:operation", BAD_CAST "replace");
+	} else {
+		nc_verb_verbose("can't find edit root");
+	}
+	xmlFreeDoc(doc);
+	return EXIT_SUCCESS;
+}
+
 struct transapi_file_callbacks file_clbks = {
-	.callbacks_count = 0,
+	.callbacks_count = 1,
 	.callbacks = {
+		{.path = IF_DS_BAK, .func = ds_bak_file_change_cb},
 	}
 };
-
-

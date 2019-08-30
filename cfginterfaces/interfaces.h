@@ -18,8 +18,10 @@
 #define QBU_NS		"urn:ieee:std:802.1Q:yang:ieee802-dot1q-preemption"
 #define QBU_PREFIX	"preempt"
 
+#define IF_DS "/usr/local/etc/netopeer/transapi/cfginterfaces/datastore.xml"
+#define TSN_CFG_OPR	"/tmp/tsn-cfg.json"
+#define IF_DS_BAK "/usr/local/etc/netopeer/transapi/cfginterfaces/datastore-bak.xml"
 
 #define QBV_MASK 0x00000001
 #define QBU_MASK 0x00000002
 #endif
-
