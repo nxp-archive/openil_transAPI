@@ -323,7 +323,6 @@ xmlNodePtr find_node_in_list(xmlNodePtr lpnode, char *key, xmlNodePtr node)
 			}
 			xml_read_field(keynode, key, tmpkey, NULL, NULL);
 			if (strcmp(keyval, tmpkey) == 0) {
-				nc_verb_verbose("find node in plnode");
 				return tmp;
 			}
 		}
@@ -340,19 +339,18 @@ void xml_repalce_same_node(xmlNodePtr target, xmlNodePtr src)
 	if (!target || !src)
 		return;
 	for (src_child = src->children; src_child != NULL;
-	     src_child = src_child->next){
+	     src_child = src_child->next) {
 		if (src_child->type != XML_ELEMENT_NODE)
 			continue;
 		if (strcmp((char *)src_child->name, "name") == 0 ||
 		    strcmp((char *)src_child->name, "enabled") == 0)
 			continue;
 		target_child =  get_child_node(target, (char *)src_child->name);
-		if (target) {
-			nc_verb_verbose("find same node");
+		if (target_child) {
 			xmlUnlinkNode(target_child);
 			xmlFreeNode(target_child);
 		}
-		xmlAddChild(target, xmlCopyNodeList(src_child));
+		xmlAddChild(target, xmlCopyNode(src_child, 1));
 	}
 }
 
@@ -368,13 +366,10 @@ int update_interfaces(xmlNodePtr base, xmlNodePtr new)
 		if (strcmp((char *)(if_new->name), "interface"))
 			continue;
 		target_node = find_node_in_list(base, "name", if_new);
-		if (!target_node) {
-			nc_verb_verbose("not find ,add new!");
-			xmlAddChild(base, if_new);
-		} else {
-			nc_verb_verbose("find ,update it!");
+		if (!target_node)
+			xmlAddChild(base, xmlCopyNode(if_new, 1));
+		else
 			xml_repalce_same_node(target_node, if_new);
-		}
 	}
 	return EXIT_SUCCESS;
 }

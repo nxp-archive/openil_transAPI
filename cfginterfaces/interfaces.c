@@ -119,37 +119,30 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 
 	enable_timestamp_on_switch();
 
-	nc_verb_verbose("new doc");
 	doc_bak = xmlNewDoc(BAD_CAST "1.0");
 	root_bak = xmlNewNode(NULL, BAD_CAST "datastores");
 	xmlDocSetRootElement(doc_bak, root_bak);
 	xmlNewNs(root_bak, BAD_CAST "urn:cesnet:tmc:datastores:file", NULL);
-	nc_verb_verbose("start interfaces");
 
 	if (access(IF_DS, F_OK) == EXIT_SUCCESS) {
-		nc_verb_verbose("read ds");
 		doc = xmlReadFile(IF_DS, NULL, 0);
 		if (!doc) {
 			nc_verb_verbose("read '%s' failed!", IF_DS);
 			return EXIT_FAILURE;
 		}
-		nc_verb_verbose("read ds root");
 		root = xmlDocGetRootElement(doc);
-		nc_verb_verbose("start get startup node");
 		startup = get_child_node(root, "startup");
 		if (!startup) {
 			nc_verb_verbose("can't find startup node");
 			xmlFreeDoc(doc);
 			return EXIT_FAILURE;
 		}
-		nc_verb_verbose("start get ifs node");
 		ifs_node = get_child_node(startup, "interfaces");
 		if (!ifs_node) {
 			ifs_node = xmlNewChild(root_bak, NULL,
 					       BAD_CAST "interfaces", NULL);
 			xmlNewNs(ifs_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
 		} else {
-			nc_verb_verbose("add ifs node");
 			xmlAddChildList(root_bak, xmlCopyNodeList(ifs_node));
 			ifs_node = get_child_node(root_bak, "interfaces");
 		}
@@ -159,9 +152,8 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 					  BAD_CAST "interfaces", NULL);
 		xmlNewNs(ifs_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
 	}
-	nc_verb_verbose("start interfaces ns");
-	xmlNewNs(ifs_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
-	xmlNewNs(ifs_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
+	//xmlNewNs(ifs_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
+	//xmlNewNs(ifs_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
 	xmlSaveFormatFileEnc(IF_DS_BAK, doc_bak, "UTF-8", 1);
 	xmlFreeDoc(doc_bak);
 	return EXIT_SUCCESS;
@@ -369,7 +361,6 @@ int callback_interfaces(__attribute__((unused)) void **data,
 	pthread_mutex_unlock(&datastore_mutex);
 
 	if ((op & XMLDIFF_REM) == 0) {
-		nc_verb_verbose("save new node");
 		doc = xmlReadFile(IF_DS_BAK, NULL, 0);
 		root = xmlDocGetRootElement(doc);
 		ifs_node = get_child_node(root, "interfaces");
@@ -581,6 +572,9 @@ int ds_bak_file_change_cb(const char *filepath,
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root;
 	xmlNodePtr interfaces;
+	xmlNodePtr interfaces2;
+	xmlNodePtr child;
+	xmlNsPtr ns;
 
 	nc_verb_verbose("%s is called", __func__);
 	*exec = 0;
@@ -594,8 +588,20 @@ int ds_bak_file_change_cb(const char *filepath,
 		nc_verb_verbose("get interfaces failed");
 		return EXIT_FAILURE;
 	}
+	child = get_child_node(interfaces, "interface");
+	if (!child) {
+		nc_verb_verbose("get interface failed");
+		return EXIT_FAILURE;
+	}
 	*edit_config = xmlNewDoc(BAD_CAST "1.0");
-	xmlDocSetRootElement(*edit_config, xmlCopyNodeList(interfaces));
+	interfaces2 = xmlNewNode(NULL, BAD_CAST "interfaces");
+	ns = xmlNewNs(interfaces2, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
+	xmlSetNs(interfaces2, ns);
+	ns = xmlNewNs(interfaces2, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
+	ns = xmlNewNs(interfaces2, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
+	xmlAddChild(interfaces2, xmlCopyNodeList(child));
+	xmlDocSetRootElement(*edit_config, interfaces2);
+	xmlSaveFormatFileEnc("/tmp/edit-config.xml", *edit_config, "UTF-8", 1);
 	root = xmlDocGetRootElement(*edit_config);
 	if (root) {
 		nc_verb_verbose("find edit root");
