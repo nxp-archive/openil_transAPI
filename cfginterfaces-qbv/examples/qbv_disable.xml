@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces"
+	    xmlns:sched="urn:ieee:std:802.1Q:yang:ieee802-dot1q-sched"
+	    xmlns:preempt="urn:ieee:std:802.1Q:yang:ieee802-dot1q-preemption">
+	<interface>
+		<name>swp0</name>
+		<enabled>true</enabled>
+		<sched:gate-parameters>
+			<sched:gate-enabled>false</sched:gate-enabled>
+		</sched:gate-parameters>
+	</interface>
+	<interface>
+		<name>eno0</name>
+		<enabled>true</enabled>
+		<sched:gate-parameters>
+			<sched:config-change>false</sched:config-change>
+		</sched:gate-parameters>
+	</interface>
+</interfaces>
+
+
