@@ -373,3 +373,15 @@ int update_interfaces(xmlNodePtr base, xmlNodePtr new)
 	}
 	return EXIT_SUCCESS;
 }
+
+void unlink_child(xmlNodePtr parent)
+{
+	xmlNodePtr child, bak;
+
+	for (child = parent->children; child != NULL;) {
+		bak = child->next;
+		xmlUnlinkNode(child);
+		xmlFree(child);
+		child = bak;
+	}
+}

@@ -20,6 +20,5 @@ struct std_qbu_conf {
 int get_qbu_info(char *port, xmlNodePtr node, int mode);
 int parse_qbu_node(xmlNode *node, struct std_qbu_conf *qbu_conf,
 			  char *err_msg, char *node_path);
-int get_qbu_cfg_xml(xmlNodePtr xml_node, int pts);
 #endif
 

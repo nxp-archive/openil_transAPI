@@ -33,4 +33,5 @@ int str_to_num(char *node_name, int type, char *str, uint64_t *num,
 		char *err_msg, char *node_path);
 xmlNodePtr find_node_in_list(xmlNodePtr lpnode, char *key, xmlNodePtr node);
 int update_interfaces(xmlNodePtr base, xmlNodePtr new);
+void unlink_child(xmlNodePtr parent);
 #endif

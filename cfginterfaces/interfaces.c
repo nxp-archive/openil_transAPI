@@ -20,6 +20,7 @@
 #include <linux/tsn.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 #include "platform.h"
 #include "interfaces.h"
 #include "parse_qbv_node.h"
@@ -95,6 +96,7 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	xmlNodePtr root_bak;
 	xmlNodePtr startup;
 	xmlNodePtr ifs_node = NULL;
+	FILE *fp;
 
 	nc_verb_verbose("%s is called", __func__);
 	/* Init libxml */
@@ -156,6 +158,12 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	//xmlNewNs(ifs_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
 	xmlSaveFormatFileEnc(IF_DS_BAK, doc_bak, "UTF-8", 1);
 	xmlFreeDoc(doc_bak);
+	//create tsn operation record file
+	if (access(TSN_OPR, F_OK) != EXIT_SUCCESS) {
+		fp = fopen(TSN_OPR, "w");
+		if (fp)
+			fclose(fp);
+	}
 	return EXIT_SUCCESS;
 }
 
@@ -193,7 +201,6 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 	xmlNodePtr root;
 	xmlNsPtr ns;
 	xmlNodePtr ifs_node = NULL, if_node = NULL;
-	xmlNodePtr qbv_node = NULL;
 	char *port = NULL;
 	int i = 0;
 
@@ -223,18 +230,8 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 			goto out;
 		}
 		xmlNewTextChild(if_node, NULL, BAD_CAST "name", BAD_CAST port);
-		qbv_node = xmlNewChild(if_node, NULL,
-				       BAD_CAST "gate-parameters",
-				       BAD_CAST NULL);
-		ns = xmlNewNs(qbv_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
-		xmlSetNs(qbv_node, ns);
-		if (!qbv_node) {
-			*error = nc_err_new(NC_ERR_OP_FAILED);
-			nc_err_set(*error, NC_ERR_PARAM_MSG,
-				"Failed to create xml node 'qbv'.");
-			goto out;
-		}
 		get_qbv_info(port, if_node, 0);
+		get_qbu_info(port, if_node, 0);
 	}
 out:
 	return(doc);
@@ -566,7 +563,7 @@ struct transapi_rpc_callbacks rpc_clbks = {
 	}
 };
 
-int ds_bak_file_change_cb(const char *filepath,
+int interfaces_ds_bak_file_change_cb(const char *filepath,
 		xmlDocPtr *edit_config, int *exec)
 {
 	xmlDocPtr doc = NULL;
@@ -601,7 +598,6 @@ int ds_bak_file_change_cb(const char *filepath,
 	ns = xmlNewNs(interfaces2, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
 	xmlAddChild(interfaces2, xmlCopyNodeList(child));
 	xmlDocSetRootElement(*edit_config, interfaces2);
-	xmlSaveFormatFileEnc("/tmp/edit-config.xml", *edit_config, "UTF-8", 1);
 	root = xmlDocGetRootElement(*edit_config);
 	if (root) {
 		nc_verb_verbose("find edit root");
@@ -616,9 +612,63 @@ int ds_bak_file_change_cb(const char *filepath,
 	return EXIT_SUCCESS;
 }
 
+int interfaces_tsn_opr_change_cb(const char *filepath,
+		xmlDocPtr *edit_config, int *exec)
+{
+	struct tsn_conf_record record;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr ifs_node, ifs_new_node;
+	xmlNodePtr tmp;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	if (get_tsn_record(&record) < 0) {
+		nc_verb_verbose("get record failed");
+		return EXIT_SUCCESS;
+	}
+	if ((uint32_t)getpid() == record.pid) {
+		nc_verb_verbose("it is netconf oper");
+		return EXIT_SUCCESS;
+	}
+	if (record.cmd != TSN_CMD_QBV_SET && record.cmd != TSN_CMD_QBU_SET) {
+		nc_verb_verbose("not interfaces' operation");
+		return EXIT_SUCCESS;
+	}
+	usleep(2000);//need to wait for 2ms
+
+	doc = xmlReadFile(IF_DS_BAK, NULL, 0);
+	root = xmlDocGetRootElement(doc);
+	ifs_node = get_child_node(root, "interfaces");
+	if (!ifs_node) {
+		nc_verb_verbose("can't find interfaces node");
+		xmlFreeDoc(doc);
+		return EXIT_SUCCESS;
+	}
+	ifs_new_node = xmlNewNode(NULL, BAD_CAST "interfaces");
+	ns = xmlNewNs(ifs_new_node, BAD_CAST IF_NS, BAD_CAST IF_PREFIX);
+	xmlSetNs(ifs_new_node, ns);
+	ns = xmlNewNs(ifs_new_node, BAD_CAST QBV_NS, BAD_CAST QBV_PREFIX);
+	ns = xmlNewNs(ifs_new_node, BAD_CAST QBU_NS, BAD_CAST QBU_PREFIX);
+	tmp = xmlNewChild(ifs_new_node, NULL, BAD_CAST "interface", NULL);
+	xmlNewTextChild(tmp, NULL, BAD_CAST "name", BAD_CAST record.portname);
+	xmlNewTextChild(tmp, NULL, BAD_CAST "enabled", BAD_CAST "true");
+
+	if (record.cmd == TSN_CMD_QBV_SET)
+		get_qbv_info(record.portname, tmp, 1);
+	else
+		get_qbu_info(record.portname, tmp, 1);
+	update_interfaces(ifs_node, xmlCopyNode(ifs_new_node, 1));
+	xmlSaveFile(IF_DS_BAK, doc);
+	xmlFreeDoc(doc);
+	xmlFreeNode(ifs_new_node);
+	return EXIT_SUCCESS;
+}
+
 struct transapi_file_callbacks file_clbks = {
-	.callbacks_count = 1,
+	.callbacks_count = 2,
 	.callbacks = {
-		{.path = IF_DS_BAK, .func = ds_bak_file_change_cb},
+		{.path = IF_DS_BAK, .func = interfaces_ds_bak_file_change_cb},
+		{.path = TSN_OPR, .func = interfaces_tsn_opr_change_cb},
 	}
 };
