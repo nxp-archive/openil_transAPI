@@ -31,6 +31,6 @@ struct ip_addr {
 	uint64_t ipl;
 };
 int cbstreamid_handle(char *portname, xmlNode *node,
-		char *err_msg, char *node_path, int disable);
+		char *err_msg, char *node_path);
 int get_cb_status(char *port, xmlNodePtr node);
 #endif

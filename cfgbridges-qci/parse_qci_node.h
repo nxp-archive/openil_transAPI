@@ -54,9 +54,9 @@ struct std_qci_conf {
 
 int get_qci_status(char *port, xmlNodePtr node);
 int stream_filters_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable);
+	   char *err_msg, char *node_path);
 int stream_gates_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable);
+	   char *err_msg, char *node_path);
 int flowmeters_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable);
+	   char *err_msg, char *node_path);
 #endif

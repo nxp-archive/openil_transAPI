@@ -397,7 +397,7 @@ out:
 }
 
 int stream_filters_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable)
+	   char *err_msg, char *node_path)
 {
 	int rc = EXIT_SUCCESS;
 	struct std_qci_conf qci_conf;
@@ -413,8 +413,6 @@ int stream_filters_handle(char *portname, xmlNode *node,
 
 	table = qci_conf.sfi_table;
 	while (table != NULL) {
-		if (disable)
-			table->sfi_ptr->enable = FALSE;
 		/* set new flow meters configuration */
 		rc = tsn_qci_psfp_sfi_set(portname,
 					  table->sfi_ptr->stream_filter_instance_id,
@@ -941,7 +939,7 @@ out:
 }
 
 int stream_gates_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable)
+	   char *err_msg, char *node_path)
 {
 	int rc = EXIT_SUCCESS;
 	struct std_qci_conf qci_conf;
@@ -957,8 +955,6 @@ int stream_gates_handle(char *portname, xmlNode *node,
 
 	table = qci_conf.sgi_table;
 	while (table != NULL) {
-		if (disable)
-			table->sgi_ptr->enable = FALSE;
 		/* set new flow meters configuration */
 		rc = tsn_qci_psfp_sgi_set(portname,
 					  table->sgi_ptr->sgi_handle,
@@ -1188,7 +1184,7 @@ out:
 }
 
 int flowmeters_handle(char *portname, xmlNode *node,
-	   char *err_msg, char *node_path, int disable)
+	   char *err_msg, char *node_path)
 {
 	int rc = EXIT_SUCCESS;
 	struct std_qci_conf qci_conf;
@@ -1204,8 +1200,6 @@ int flowmeters_handle(char *portname, xmlNode *node,
 
 	table = qci_conf.fmi_table;
 	while (table != NULL) {
-		if (disable)
-			table->fmi_ptr->enable = FALSE;
 		/* set new flow meters configuration */
 		//nc_verb_verbose("cir is %d", table->fmi_ptr->fmiconf.cir);
 		//nc_verb_verbose("cbs is %d", table->fmi_ptr->fmiconf.cbs);

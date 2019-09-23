@@ -343,7 +343,8 @@ void xml_repalce_same_node(xmlNodePtr target, xmlNodePtr src)
 		if (src_child->type != XML_ELEMENT_NODE)
 			continue;
 		if (strcmp((char *)src_child->name, "name") == 0 ||
-		    strcmp((char *)src_child->name, "enabled") == 0)
+		    strcmp((char *)src_child->name, "enabled") == 0 ||
+		    strcmp((char *)src_child->name, "type") == 0)
 			continue;
 		target_child =  get_child_node(target, (char *)src_child->name);
 		if (target_child) {
@@ -370,6 +371,46 @@ int update_interfaces(xmlNodePtr base, xmlNodePtr new)
 			xmlAddChild(base, xmlCopyNode(if_new, 1));
 		else
 			xml_repalce_same_node(target_node, if_new);
+	}
+	return EXIT_SUCCESS;
+}
+
+int update_bridge(xmlNodePtr base, xmlNodePtr new)
+{
+	xmlNodePtr cp_new;
+	xmlNodePtr target_node;
+
+	nc_verb_verbose("%s is called", __func__);
+	for (cp_new = new->children; cp_new != NULL; cp_new = cp_new->next) {
+		if (cp_new->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp((char *)(cp_new->name), "component"))
+			continue;
+		target_node = find_node_in_list(base, "name", cp_new);
+		if (!target_node)
+			xmlAddChild(base, xmlCopyNode(cp_new, 1));
+		else
+			xml_repalce_same_node(target_node, cp_new);
+	}
+	return EXIT_SUCCESS;
+}
+
+int update_bridges(xmlNodePtr base, xmlNodePtr new)
+{
+	xmlNodePtr bd_new;
+	xmlNodePtr target_node;
+
+	nc_verb_verbose("%s is called", __func__);
+	for (bd_new = new->children; bd_new != NULL; bd_new = bd_new->next) {
+		if (bd_new->type != XML_ELEMENT_NODE)
+			continue;
+		if (strcmp((char *)(bd_new->name), "bridge"))
+			continue;
+		target_node = find_node_in_list(base, "name", bd_new);
+		if (!target_node)
+			xmlAddChild(base, xmlCopyNode(bd_new, 1));
+		else
+			update_bridge(target_node, bd_new);
 	}
 	return EXIT_SUCCESS;
 }

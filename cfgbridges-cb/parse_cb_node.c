@@ -859,7 +859,7 @@ out:
 	return rc;
 }
 int cbstreamid_handle(char *portname, xmlNode *node,
-	char *err_msg, char *node_path, int disable)
+	char *err_msg, char *node_path)
 {
 	int rc = EXIT_SUCCESS;
 	struct std_cb_conf cb_conf;
@@ -876,9 +876,6 @@ int cbstreamid_handle(char *portname, xmlNode *node,
 
 	table = cb_conf.stream_table;
 	while (table != NULL) {
-		if (disable)
-			table->stream_ptr->enable = FALSE;
-
 		/* set new stream filters configuration */
 		rc = tsn_cb_streamid_set(portname,
 					 table->stream_ptr->index,

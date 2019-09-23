@@ -22,6 +22,10 @@
 #define CB_NS		"urn:ieee:std:802.1Q:yang:ieee802-dot1q-stream-id"
 #define CB_PREFIX	"stream"
 
+#define BRIDGE_DS "/usr/local/etc/netopeer/transapi/cfgbridges/datastore.xml"
+#define BRIDGE_DS_BAK "/usr/local/etc/netopeer/transapi/cfgbridges/datastore-bak.xml"
+#define TSN_OPR	"/tmp/tsn-oper-record.json"
+
 #define QCI_SFI_MASK 0x00000004
 #define QCI_SGI_MASK 0x00000008
 #define QCI_FMI_MASK 0x00000010

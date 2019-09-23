@@ -14,6 +14,7 @@
 #include <semaphore.h>
 #include <tsn/genl_tsn.h>
 #include <linux/tsn.h>
+#include <time.h>
 #include "platform.h"
 #include "bridges.h"
 #include "parse_qci_node.h"
@@ -83,6 +84,14 @@ NC_EDIT_ERROPT_TYPE erropt = NC_EDIT_ERROPT_NOTSET;
  */
 int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 {
+	xmlDocPtr  doc;
+	xmlDocPtr  doc_bak;
+	xmlNodePtr root;
+	xmlNodePtr root_bak;
+	xmlNodePtr startup;
+	xmlNodePtr bds_node = NULL;
+	FILE *fp;
+
 	/* Init libxml */
 	xmlInitParser();
 	bridge_cfg_change_ind = 0;
@@ -103,6 +112,51 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	 * properly (perhaps the format is wrong?).
 	 */
 	enable_timestamp_on_switch();
+	doc_bak = xmlNewDoc(BAD_CAST "1.0");
+	root_bak = xmlNewNode(NULL, BAD_CAST "datastores");
+	xmlDocSetRootElement(doc_bak, root_bak);
+	xmlNewNs(root_bak, BAD_CAST "urn:cesnet:tmc:datastores:file", NULL);
+
+	if (access(BRIDGE_DS, F_OK) == EXIT_SUCCESS) {
+		doc = xmlReadFile(BRIDGE_DS, NULL, 0);
+		if (!doc) {
+			nc_verb_verbose("read '%s' failed!", BRIDGE_DS);
+			return EXIT_FAILURE;
+		}
+		root = xmlDocGetRootElement(doc);
+		startup = get_child_node(root, "startup");
+		if (!startup) {
+			nc_verb_verbose("can't find startup node");
+			xmlFreeDoc(doc);
+			return EXIT_FAILURE;
+		}
+		bds_node = get_child_node(startup, "bridges");
+		if (!bds_node) {
+			bds_node = xmlNewChild(root_bak, NULL,
+			BAD_CAST "bridges", NULL);
+			xmlNewNs(bds_node, BAD_CAST BRIDGE_NS,
+				 BAD_CAST BRIDGE_PREFIX);
+		} else {
+			xmlAddChildList(root_bak, xmlCopyNodeList(bds_node));
+			bds_node = get_child_node(root_bak, "bridges");
+		}
+		xmlFreeDoc(doc);
+	} else {
+		bds_node = xmlNewChild(root_bak, NULL,
+		BAD_CAST "bridges", NULL);
+		xmlNewNs(bds_node, BAD_CAST BRIDGE_NS, BAD_CAST BRIDGE_PREFIX);
+	}
+	xmlNewNs(bds_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
+	xmlNewNs(bds_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	xmlNewNs(bds_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+	xmlSaveFormatFileEnc(BRIDGE_DS_BAK, doc_bak, "UTF-8", 1);
+	xmlFreeDoc(doc_bak);
+	//create tsn operation record file if not exits
+	if (access(TSN_OPR, F_OK) != EXIT_SUCCESS) {
+		fp = fopen(TSN_OPR, "w");
+		if (fp)
+			fclose(fp);
+	}
 	return EXIT_SUCCESS;
 }
 
@@ -333,8 +387,90 @@ int callback_bridge(__attribute__((unused)) void **data,
 {
 	int rc = EXIT_SUCCESS;
 
+	nc_verb_verbose("%s is called", __func__);
+	return rc;
+}
+
+void clr_component_recursive(xmlNodePtr parent)
+{
+	xmlNodePtr child, tmp;
+	char *prop;
 
 	nc_verb_verbose("%s is called", __func__);
+	for (child = parent->children; child != NULL;) {
+		if (child->type != XML_ELEMENT_NODE) {
+			child = child->next;
+			continue;
+		}
+
+		prop = (char *)xmlGetProp(child, BAD_CAST "default");
+		if (prop) {
+			tmp = child->next;
+			xmlUnlinkNode(child);
+			xmlFreeNode(child);
+			child = tmp;
+			continue;
+		}
+		if (child->children) {
+			clr_component_recursive(child);
+			if (!child->children) {
+				tmp = child->next;
+				xmlUnlinkNode(child);
+				xmlFreeNode(child);
+				child = tmp;
+				continue;
+			}
+		}
+		child = child->next;
+	}
+}
+
+void clr_bridge_node(xmlNodePtr node)
+{
+	xmlNodePtr child;
+	char *name;
+
+	nc_verb_verbose("%s is called", __func__);
+	for (child = node->children; child != NULL; child = child->next) {
+		if (child->type != XML_ELEMENT_NODE)
+			continue;
+		name = (char *)child->name;
+		if (strcmp(name, "bridge") == 0)
+			clr_component_recursive(child);
+	}
+}
+
+int callback_bridges(__attribute__((unused)) void **data,
+		__attribute__((unused)) XMLDIFF_OP op,
+		__attribute__((unused)) xmlNodePtr old_node,
+		__attribute__((unused)) xmlNodePtr new_node,
+		__attribute__((unused)) struct nc_err **error)
+{
+	int rc = EXIT_SUCCESS;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr bds_node;
+	xmlNodePtr tmp;
+
+	nc_verb_verbose("%s is called", __func__);
+
+	if ((op & XMLDIFF_REM) == 0) {
+		nc_verb_verbose("Remove operation");
+		doc = xmlReadFile(BRIDGE_DS_BAK, NULL, 0);
+		root = xmlDocGetRootElement(doc);
+		bds_node = get_child_node(root, "bridges");
+		if (!bds_node) {
+			nc_verb_verbose("can't find bridges node");
+			xmlFreeDoc(doc);
+			return rc;
+		}
+		tmp = xmlCopyNode(new_node, 1);
+		clr_bridge_node(tmp);
+		nc_verb_verbose("clr bridges node end");
+		update_bridges(bds_node, tmp);
+		xmlSaveFile(BRIDGE_DS_BAK, doc);
+		xmlFreeDoc(doc);
+	}
 	return rc;
 }
 
@@ -349,7 +485,6 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	xmlNodePtr name_node = NULL;
 	int rc = EXIT_SUCCESS;
 	char err_msg[MAX_ELEMENT_LENGTH];
-	int disable = 0;
 	char init_socket = 0;
 	char name[MAX_IF_NAME_LENGTH] = {0};
 	char path[MAX_PATH_LENGTH];
@@ -360,7 +495,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	name_node = get_child_node(node, "name");
 	rc = xml_read_field(name_node, "name", name, NULL, NULL);
 	if (rc != EXIT_SUCCESS) {
-		sprintf(err_msg, "can not find interface name!");
+		sprintf(err_msg, "can not find bridge name!");
 		goto out;
 	}
 
@@ -374,14 +509,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_SFI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SFI_MASK;
 		if (bridge_stream_filters_op & XMLDIFF_REM) {
-			if (!old_node) {
-				rc = EXIT_FAILURE;
-				sprintf(err_msg, "trying to remevo Nonexistent 'stream-filters' node");
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
@@ -393,8 +521,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 			goto out;
 		}
 		strcat(path, "/stream-filters");
-		rc = stream_filters_handle(name, sub_node, err_msg,
-					   path, disable);
+		rc = stream_filters_handle(name, sub_node, err_msg, path);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -403,14 +530,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_SGI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_SGI_MASK;
 		if (bridge_stream_gates_op & XMLDIFF_REM) {
-			if (!old_node) {
-				rc = EXIT_FAILURE;
-				sprintf(err_msg, "trying to remevo Nonexistent 'stream-gates' node");
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
@@ -422,8 +542,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 			goto out;
 		}
 		strcat(path, "/stream-gates");
-		rc = stream_gates_handle(name, sub_node, err_msg,
-					 path, disable);
+		rc = stream_gates_handle(name, sub_node, err_msg, path);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -432,14 +551,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & QCI_FMI_MASK) {
 		bridge_cfg_change_ind &= ~QCI_FMI_MASK;
 		if (bridge_flow_meters_op & XMLDIFF_REM) {
-			if (!old_node) {
-				rc = EXIT_FAILURE;
-				sprintf(err_msg, "trying to remevo Nonexistent flow-meters node");
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
@@ -451,7 +563,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 			goto out;
 		}
 		strcat(path, "/flow-meters");
-		rc = flowmeters_handle(name, sub_node, err_msg, path, disable);
+		rc = flowmeters_handle(name, sub_node, err_msg, path);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -460,14 +572,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	if (bridge_cfg_change_ind & CB_MASK) {
 		bridge_cfg_change_ind &= ~CB_MASK;
 		if (bridge_stream_id_op & XMLDIFF_REM) {
-			if (!old_node) {
-				rc = EXIT_FAILURE;
-				sprintf(err_msg, "trying to remevo Nonexistent 'streams' node");
-				goto out;
-			}
-			node = old_node;
-			disable = 1;
-			nc_verb_verbose("use old node");
+			goto out;
 		} else {
 			node = new_node;
 			nc_verb_verbose("use new node");
@@ -479,7 +584,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 			goto out;
 		}
 		strcat(path, "/streams");
-		rc = cbstreamid_handle(name, sub_node, err_msg, path, disable);
+		rc = cbstreamid_handle(name, sub_node, err_msg, path);
 		if (rc != EXIT_SUCCESS)
 			goto out;
 	}
@@ -500,9 +605,10 @@ out:
  * DO NOT alter this structure
  */
 struct transapi_data_callbacks clbks =  {
-	.callbacks_count = 76,
+	.callbacks_count = 77,
 	.data = NULL,
 	.callbacks = {
+		{.path = "/dot1q:bridges", .func = callback_bridges},
 		{.path = "/dot1q:bridges/dot1q:bridge",
 			.func = callback_bridge},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component",
@@ -662,31 +768,57 @@ struct transapi_rpc_callbacks rpc_clbks = {
 	.callbacks = {}
 };
 
-/*
- * Structure transapi_file_callbacks provides mapping between specific files
- * (e.g. configuration file in /etc/) and the callback function executed when
- * the file is modified.
- * The structure is empty by default. Add items, as in example, as you need.
- *
- * Example:
- * int example_callback(const char *filepath,
- *	xmlDocPtr *edit_config, int *exec) {
- *     // do the job with changed file content
- *     // if needed, set edit_config parameter to the edit-config
- *     //data to be applied
- *     // if needed, set exec to 1 to perform consequent transapi callbacks
- *     return 0;
- * }
- *
- * struct transapi_file_callbacks file_clbks = {
- *     .callbacks_count = 1,
- *     .callbacks = {
- *         {.path = "/etc/my_cfg_file", .func = example_callback}
- *     }
- * }
- */
+int bridges_ds_bak_file_change_cb(const char *filepath,
+		xmlDocPtr *edit_config, int *exec)
+{
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr bridges;
+	xmlNodePtr bridges2;
+	xmlNodePtr child;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	*exec = 0;
+
+	doc = xmlReadFile(BRIDGE_DS_BAK, NULL, 0);
+	root = xmlDocGetRootElement(doc);
+	bridges = get_child_node(root, "bridges");
+	if (!bridges) {
+		nc_verb_verbose("get bridges failed");
+		return EXIT_FAILURE;
+	}
+	child = get_child_node(bridges, "bridge");
+	if (!child) {
+		nc_verb_verbose("get bridge failed");
+		return EXIT_FAILURE;
+	}
+	*edit_config = xmlNewDoc(BAD_CAST "1.0");
+	bridges2 = xmlNewNode(NULL, BAD_CAST "bridges");
+	ns = xmlNewNs(bridges2, BAD_CAST BRIDGE_NS, BAD_CAST BRIDGE_PREFIX);
+	xmlSetNs(bridges2, ns);
+	ns = xmlNewNs(bridges2, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
+	ns = xmlNewNs(bridges2, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	xmlAddChild(bridges2, xmlCopyNodeList(child));
+	xmlDocSetRootElement(*edit_config, bridges2);
+	xmlSaveFormatFileEnc("/tmp/edit-config.xml", *edit_config, "UTF-8", 1);
+	root = xmlDocGetRootElement(*edit_config);
+	if (root) {
+		nc_verb_verbose("find edit root");
+		xmlNewNs(root,
+			 BAD_CAST "urn:ietf:params:xml:ns:netconf:base:1.0",
+			 BAD_CAST "ncop");
+		xmlSetProp(root, BAD_CAST "ncop:operation", BAD_CAST "replace");
+	} else {
+		nc_verb_verbose("can't find edit root");
+	}
+	xmlFreeDoc(doc);
+	return EXIT_SUCCESS;
+}
+
 struct transapi_file_callbacks file_clbks = {
-	.callbacks_count = 0,
+	.callbacks_count = 1,
 	.callbacks = {
+		{.path = BRIDGE_DS_BAK, .func = bridges_ds_bak_file_change_cb},
 	}
 };
