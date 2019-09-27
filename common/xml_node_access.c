@@ -426,3 +426,83 @@ void unlink_child(xmlNodePtr parent)
 		child = bak;
 	}
 }
+
+void strip_def_node_recursive(xmlNodePtr parent)
+{
+	xmlNodePtr child, tmp;
+	char *prop;
+
+	nc_verb_verbose("%s is called", __func__);
+	for (child = parent->children; child != NULL;) {
+		if (child->type != XML_ELEMENT_NODE) {
+			child = child->next;
+			continue;
+		}
+
+		prop = (char *)xmlGetProp(child, BAD_CAST "default");
+		if (prop) {
+			tmp = child->next;
+			xmlUnlinkNode(child);
+			xmlFreeNode(child);
+			child = tmp;
+			continue;
+		}
+		if (child->children) {
+			strip_def_node_recursive(child);
+			if (!child->children) {
+				tmp = child->next;
+				xmlUnlinkNode(child);
+				xmlFreeNode(child);
+				child = tmp;
+				continue;
+			}
+		}
+		child = child->next;
+	}
+}
+
+void mac_ul2yangstr(uint64_t mac_ul, char *mac_str)
+{
+	uint64_t mask = 0xff;
+	uint8_t temp;
+	int i;
+	char chr[8];
+
+	if (!mac_str)
+		return;
+	memset(mac_str, 0, 20);
+	for (i = 5; i >= 0; i--) {
+		temp = (uint8_t)(((mask << (8 * i)) & mac_ul) >> (8 * i));
+		sprintf(chr, "%02X", temp);
+		strcat(mac_str, chr);
+		if (i)
+			strcat(mac_str, "-");
+	}
+}
+
+void pri_int2yangstr(int8_t pri, char *str)
+{
+	if (!str)
+		return;
+
+	if (pri == -1)
+		sprintf(str, "wildcard");
+	else if (pri == 0)
+		sprintf(str, "zero");
+	else if (pri == 1)
+		sprintf(str, "one");
+	else if (pri == 2)
+		sprintf(str, "two");
+	else if (pri == 3)
+		sprintf(str, "three");
+	else if (pri == 4)
+		sprintf(str, "four");
+	else if (pri == 5)
+		sprintf(str, "five");
+	else if (pri == 6)
+		sprintf(str, "six");
+	else if (pri == 7)
+		sprintf(str, "seven");
+	else
+		sprintf(str, "unknown");
+}

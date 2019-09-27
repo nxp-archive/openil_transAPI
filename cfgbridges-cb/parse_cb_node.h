@@ -32,5 +32,5 @@ struct ip_addr {
 };
 int cbstreamid_handle(char *portname, xmlNode *node,
 		char *err_msg, char *node_path);
-int get_cb_status(char *port, xmlNodePtr node);
+int get_cb_info(char *port, xmlNodePtr node, int mode, uint32_t index);
 #endif

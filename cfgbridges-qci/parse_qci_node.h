@@ -59,4 +59,7 @@ int stream_gates_handle(char *portname, xmlNode *node,
 	   char *err_msg, char *node_path);
 int flowmeters_handle(char *portname, xmlNode *node,
 	   char *err_msg, char *node_path);
+int get_sfi_config(char *port, xmlNodePtr node, int mode, uint32_t index);
+int get_sgi_config(char *port, xmlNodePtr node, int mode, uint32_t index);
+int get_fmi_config(char *port, xmlNodePtr node, int mode, uint32_t index);
 #endif

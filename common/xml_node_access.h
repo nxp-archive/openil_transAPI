@@ -35,4 +35,7 @@ xmlNodePtr find_node_in_list(xmlNodePtr lpnode, char *key, xmlNodePtr node);
 int update_interfaces(xmlNodePtr base, xmlNodePtr new);
 int update_bridges(xmlNodePtr base, xmlNodePtr new);
 void unlink_child(xmlNodePtr parent);
+void strip_def_node_recursive(xmlNodePtr parent);
+void mac_ul2yangstr(uint64_t mac_ul, char *mac_str);
+void pri_int2yangstr(int8_t pri, char *str);
 #endif

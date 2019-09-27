@@ -896,8 +896,237 @@ out:
 	return rc;
 }
 
-int get_cb_status(char *port, xmlNodePtr node)
+int get_stream_cfg_xml(xmlNodePtr xml_node, cJSON *json)
+{
+	cJSON *item =  NULL;
+	xmlNodePtr para;
+	xmlNodePtr streams_node;
+	xmlNodePtr stream_table;
+	xmlNodePtr temp_node;
+	char temp[80] = {0};
+	uint32_t temp_u32 = 0;
+	uint32_t type = 0;
+	uint64_t mac = 0;
+	int ret = 0;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	streams_node = xmlNewChild(xml_node, NULL, BAD_CAST "streams", NULL);
+	ns = xmlNewNs(streams_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+	xmlSetNs(streams_node, ns);
+	stream_table = xmlNewChild(streams_node, NULL,
+				   BAD_CAST "stream-identity-table", NULL);
+	item = cJSON_GetObjectItem(json, "index");
+	if (item) {
+		temp_u32 = ((uint32_t)item->valuedouble);
+		sprintf(temp, "%d", temp_u32);
+		xmlNewChild(stream_table, NULL,
+			    BAD_CAST "index", BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "in face out port");
+	if (item) {
+		temp_u32 = ((uint32_t)item->valuedouble);
+		sprintf(temp, "%d", temp_u32);
+		xmlNewTextChild(stream_table, NULL,
+				BAD_CAST "in-facing-output-port-list",
+				BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "out face out port");
+	if (item) {
+		temp_u32 = ((uint32_t)item->valuedouble);
+		sprintf(temp, "%d", temp_u32);
+		xmlNewTextChild(stream_table, NULL,
+				BAD_CAST "out-facing-output-port-list",
+				BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "in face in port");
+	if (item) {
+		temp_u32 = ((uint32_t)item->valuedouble);
+		sprintf(temp, "%d", temp_u32);
+		xmlNewTextChild(stream_table, NULL,
+				BAD_CAST "in-facing-input-port-list",
+				BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "out face in port");
+	if (item) {
+		temp_u32 = ((uint32_t)item->valuedouble);
+		sprintf(temp, "%d", temp_u32);
+		xmlNewTextChild(stream_table, NULL,
+				BAD_CAST "out-facing-input-port-list",
+				BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "identify type");
+	if (item) {
+		type = ((uint32_t)item->valuedouble);
+		switch (type) {
+		case 1:
+			xmlNewTextChild(stream_table, NULL,
+					BAD_CAST "identification-type",
+					BAD_CAST "null");
+			break;
+		case 2:
+			xmlNewTextChild(stream_table, NULL,
+					BAD_CAST "identification-type",
+					BAD_CAST "dest-mac-and-vlan");
+			break;
+		case 3:
+			xmlNewTextChild(stream_table, NULL,
+					BAD_CAST "identification-type",
+					BAD_CAST "ip-octuple");
+			break;
+		case 4:
+			xmlNewTextChild(stream_table, NULL,
+					BAD_CAST "identification-type",
+					BAD_CAST "source-mac-and-vlan");
+			break;
+		default:
+			ret = EXIT_FAILURE;
+			break;
+		}
+	}
+
+	if (ret == EXIT_FAILURE)
+		return ret;
+
+	temp_node = xmlNewChild(stream_table, NULL,
+				BAD_CAST "parameters", NULL);
+	switch (type) {
+	case 1:
+		para = xmlNewChild(temp_node, NULL, BAD_CAST
+				   "null-stream-identification-params", NULL);
+		item = cJSON_GetObjectItem(json, "null dmac");
+		if (item) {
+			mac = (uint64_t)item->valuedouble;
+			mac_ul2yangstr(mac, temp);
+			xmlNewTextChild(para, NULL, BAD_CAST "dest-address",
+					BAD_CAST temp);
+		}
+		item = cJSON_GetObjectItem(json, "null tag type");
+		if (item) {
+			type = ((uint32_t)item->valuedouble);
+			if (type == 1) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "tagged");
+			} else if (type == 2) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "priority");
+			} else if (type == 3) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "all");
+			}
+		}
+		item = cJSON_GetObjectItem(json, "null vlanid");
+		if (item) {
+			temp_u32 = ((uint32_t)item->valuedouble);
+			sprintf(temp, "%d", temp_u32);
+			xmlNewTextChild(para, NULL, BAD_CAST "vlan-id",
+					BAD_CAST temp);
+		}
+		break;
+	case 2:
+		para = xmlNewChild(temp_node, NULL, BAD_CAST
+				   "source-mac-and-vlan-identification-params",
+				   NULL);
+		item = cJSON_GetObjectItem(json, "source mac");
+		if (item) {
+			mac = (uint64_t)item->valuedouble;
+			mac_ul2yangstr(mac, temp);
+			xmlNewTextChild(para, NULL, BAD_CAST "source-address",
+					BAD_CAST temp);
+		}
+		item = cJSON_GetObjectItem(json, "source tag type");
+		if (item) {
+			type = ((uint32_t)item->valuedouble);
+			if (type == 1) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "tagged");
+			} else if (type == 2) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "priority");
+			} else if (type == 3) {
+				xmlNewTextChild(para, NULL,
+						BAD_CAST "vlan-tagged",
+						BAD_CAST "all");
+			}
+		}
+		item = cJSON_GetObjectItem(json, "source vlanid");
+		if (item) {
+			temp_u32 = ((uint32_t)item->valuedouble);
+			sprintf(temp, "%d", temp_u32);
+			xmlNewTextChild(para, NULL, BAD_CAST "vlan-id",
+					BAD_CAST temp);
+		}
+		break;
+	case 3:
+		para = xmlNewChild(temp_node, NULL, BAD_CAST
+				   "dest-mac-and-vlan-identification-params",
+				   NULL);
+		break;
+	case 4:
+		para = xmlNewChild(temp_node, NULL, BAD_CAST
+				   "ip-octuple-stream-identification-params",
+				   NULL);
+		break;
+	default:
+		break;
+	}
+	return ret;
+}
+
+int get_cb_info(char *port, xmlNodePtr node, int mode, uint32_t index)
 {
 	int rc = EXIT_SUCCESS;
+	FILE *fp;
+	int len = 0;
+	cJSON *json;
+	char *json_data;
+	struct tsn_cb_streamid stream;
+
+	init_tsn_socket();
+	rc = tsn_cb_streamid_get(port, index, &stream);
+	close_tsn_socket();
+	if (rc < 0)
+		return rc;
+
+	/* Get json node */
+	fp = fopen(TSNTOOL_PORT_ST_FILE, "r");
+	if (!fp) {
+		nc_verb_verbose("open '%s' error", TSNTOOL_PORT_ST_FILE);
+		goto out;
+	}
+	fseek(fp, 0, SEEK_END);
+	len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	json_data = (char *)malloc(len+1);
+	if (!json_data) {
+		nc_verb_verbose("alloc memory for json failed");
+		goto out1;
+	}
+	fread(json_data, 1, len, fp);
+	json = cJSON_Parse(json_data);
+	if (!json) {
+		nc_verb_verbose("parse json data failed");
+		goto out2;
+	}
+
+	if (mode)
+		get_stream_cfg_xml(node, json);
+
+	cJSON_Delete(json);
+out2:
+	free(json_data);
+out1:
+	fclose(fp);
+out:
 	return rc;
 }

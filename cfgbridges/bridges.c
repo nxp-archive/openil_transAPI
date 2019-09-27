@@ -260,7 +260,7 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 	bridge_node = xmlNewChild(bridges_node, NULL, BAD_CAST "bridge", NULL);
 	xmlNewChild(bridge_node, NULL, BAD_CAST "name", BAD_CAST "enetc");
 	sprintf(temp, "%d", ENETC_PORT_NUM);
-	xmlNewChild(bridge_node, NULL, BAD_CAST "components", BAD_CAST temp);
+	xmlNewChild(bridge_node, NULL, BAD_CAST "component", BAD_CAST temp);
 	get_port_name_list(port_name_list, ENETC_TYPE);
 	if (sscanf(port_name_list, "%s %s %s",
 	       if_name[0], if_name[1], if_name[2]) < 0)
@@ -391,40 +391,6 @@ int callback_bridge(__attribute__((unused)) void **data,
 	return rc;
 }
 
-void clr_component_recursive(xmlNodePtr parent)
-{
-	xmlNodePtr child, tmp;
-	char *prop;
-
-	nc_verb_verbose("%s is called", __func__);
-	for (child = parent->children; child != NULL;) {
-		if (child->type != XML_ELEMENT_NODE) {
-			child = child->next;
-			continue;
-		}
-
-		prop = (char *)xmlGetProp(child, BAD_CAST "default");
-		if (prop) {
-			tmp = child->next;
-			xmlUnlinkNode(child);
-			xmlFreeNode(child);
-			child = tmp;
-			continue;
-		}
-		if (child->children) {
-			clr_component_recursive(child);
-			if (!child->children) {
-				tmp = child->next;
-				xmlUnlinkNode(child);
-				xmlFreeNode(child);
-				child = tmp;
-				continue;
-			}
-		}
-		child = child->next;
-	}
-}
-
 void clr_bridge_node(xmlNodePtr node)
 {
 	xmlNodePtr child;
@@ -436,7 +402,7 @@ void clr_bridge_node(xmlNodePtr node)
 			continue;
 		name = (char *)child->name;
 		if (strcmp(name, "bridge") == 0)
-			clr_component_recursive(child);
+			strip_def_node_recursive(child);
 	}
 }
 
@@ -816,9 +782,87 @@ int bridges_ds_bak_file_change_cb(const char *filepath,
 	return EXIT_SUCCESS;
 }
 
+int bridges_tsn_opr_change_cb(const char *filepath,
+		xmlDocPtr *edit_config, int *exec)
+{
+	struct tsn_conf_record record;
+	xmlDocPtr doc = NULL;
+	xmlNodePtr root;
+	xmlNodePtr bds_node, bds_new_node;
+	xmlNodePtr tmp, component;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	if (get_tsn_record(&record) < 0) {
+		nc_verb_verbose("get record failed");
+		return EXIT_SUCCESS;
+	}
+	if ((uint32_t)getpid() == record.pid) {
+		nc_verb_verbose("it is netconf oper");
+		return EXIT_SUCCESS;
+	}
+	if (record.cmd != TSN_CMD_CB_STREAMID_SET &&
+	    record.cmd != TSN_CMD_QCI_SFI_SET &&
+	    record.cmd != TSN_CMD_QCI_SGI_SET &&
+	    record.cmd != TSN_CMD_QCI_FMI_SET) {
+		nc_verb_verbose("not bridges' operation");
+		return EXIT_SUCCESS;
+	}
+	usleep(2000);//need to wait for 2ms
+
+	doc = xmlReadFile(BRIDGE_DS_BAK, NULL, 0);
+	root = xmlDocGetRootElement(doc);
+	bds_node = get_child_node(root, "bridges");
+	if (!bds_node) {
+		nc_verb_verbose("can't find bridges node");
+		xmlFreeDoc(doc);
+		return EXIT_SUCCESS;
+	}
+	bds_new_node = xmlNewNode(NULL, BAD_CAST "bridges");
+	ns = xmlNewNs(bds_new_node, BAD_CAST BRIDGE_NS, BAD_CAST BRIDGE_PREFIX);
+	xmlSetNs(bds_new_node, ns);
+	ns = xmlNewNs(bds_new_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
+	ns = xmlNewNs(bds_new_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	ns = xmlNewNs(bds_new_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+
+	tmp = xmlNewChild(bds_new_node, NULL, BAD_CAST "bridge", NULL);
+	if (strncmp(record.portname, "eno", 3) == 0)
+		xmlNewTextChild(tmp, NULL, BAD_CAST "name", BAD_CAST "enetc");
+	else if (strncmp(record.portname, "swp", 3) == 0)
+		xmlNewTextChild(tmp, NULL, BAD_CAST "name", BAD_CAST "switch");
+	else
+		xmlNewTextChild(tmp, NULL, BAD_CAST "name", BAD_CAST "unknown");
+	component = xmlNewChild(tmp, NULL, BAD_CAST "component", NULL);
+	xmlNewTextChild(component, NULL, BAD_CAST "name",
+			BAD_CAST record.portname);
+
+	switch (record.cmd) {
+	case TSN_CMD_CB_STREAMID_SET:
+		get_cb_info(record.portname, component, 1, record.para);
+		break;
+	case TSN_CMD_QCI_SFI_SET:
+		get_sfi_config(record.portname, component, 1, record.para);
+		break;
+	case TSN_CMD_QCI_SGI_SET:
+		get_sgi_config(record.portname, component, 1, record.para);
+		break;
+	case TSN_CMD_QCI_FMI_SET:
+		get_fmi_config(record.portname, component, 1, record.para);
+		break;
+	default:
+		break;
+	}
+	update_bridges(bds_node, xmlCopyNode(bds_new_node, 1));
+	xmlSaveFile(BRIDGE_DS_BAK, doc);
+	xmlFreeDoc(doc);
+	xmlFreeNode(bds_new_node);
+	return EXIT_SUCCESS;
+}
+
 struct transapi_file_callbacks file_clbks = {
-	.callbacks_count = 1,
+	.callbacks_count = 2,
 	.callbacks = {
 		{.path = BRIDGE_DS_BAK, .func = bridges_ds_bak_file_change_cb},
+		{.path = TSN_OPR, .func = bridges_tsn_opr_change_cb},
 	}
 };

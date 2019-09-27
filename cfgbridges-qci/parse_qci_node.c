@@ -18,6 +18,7 @@
 #include "bridges.h"
 #include "parse_qci_node.h"
 #include "xml_node_access.h"
+#include "json_node_access.h"
 
 void init_qci_memory(struct std_qci_conf *qci_conf)
 {
@@ -165,7 +166,7 @@ int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	xmlNode *tmp_node;
 	char ele_val[MAX_ELEMENT_LENGTH];
 
@@ -237,7 +238,7 @@ int parse_stream_filter_table(xmlNode *node,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	xmlNode *tmp_node;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
@@ -438,7 +439,7 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	struct tsn_qci_psfp_gcl *entry;
 
@@ -532,7 +533,7 @@ int parse_admin_sgl(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	xmlNode *tmp_node;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
@@ -599,7 +600,7 @@ int parse_ptp_time(xmlNode *node, char *err_msg, uint64_t *base_time,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	struct ieee_ptp_time admin_base_time = {0, 0};
 
@@ -671,7 +672,7 @@ int parse_stream_gate_table(xmlNode *node,
 	int rc = EXIT_SUCCESS;
 	char *content;
 	uint32_t list_index = 0;
-	unsigned long tmp;
+	uint64_t tmp;
 	xmlNode *tmp_node;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	char path[MAX_PATH_LENGTH];
@@ -980,7 +981,7 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 {
 	int rc = EXIT_SUCCESS;
 	char *content;
-	unsigned long tmp;
+	uint64_t tmp;
 	xmlNode *tmp_node;
 	char ele_val[MAX_ELEMENT_LENGTH];
 	struct std_qci_psfp_fmi *cur_fmi_ptr = fmi_table->fmi_ptr;
@@ -1231,7 +1232,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	xmlNodePtr tmp_node;
 	char temp[80] = {0};
 	int node_cnt = 0;
-	unsigned long temp_ul = 0;
+	uint64_t temp_ul = 0;
 	char *tmp_str = NULL;
 
 	nc_verb_verbose("%s is called", __func__);
@@ -1242,7 +1243,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* stream-filter-instance-id */
 	item = cJSON_GetObjectItem(json_ob, "index");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "stream-filter-instance-id",
@@ -1256,7 +1257,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* matching-frames-count */
 	item = cJSON_GetObjectItem(json_ob, "match");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "matching-frames-count",
@@ -1270,7 +1271,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* passing-frames-count */
 	item = cJSON_GetObjectItem(json_ob, "pass");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "passing-frames-count",
@@ -1284,7 +1285,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* not-passing-frames-count */
 	item = cJSON_GetObjectItem(json_ob, "gate_drop");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "not-passing-frames-count",
@@ -1298,7 +1299,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* passing-sdu-count */
 	item = cJSON_GetObjectItem(json_ob, "sdu_pass");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "passing-sdu-count",
@@ -1312,7 +1313,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* not-passing-sdu-count */
 	item = cJSON_GetObjectItem(json_ob, "sdu_drop");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "not-passing-sdu-count",
@@ -1326,7 +1327,7 @@ int probe_qci_sfi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* red-frames-count */
 	item = cJSON_GetObjectItem(json_ob, "red");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "red-frames-count",
@@ -1385,9 +1386,9 @@ int probe_qci_sgi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	cJSON *item;
 	int node_cnt = 0;
 
-	unsigned long second = 0;
-	unsigned long nanosecond = 0;
-	unsigned long temp_ul = 0;
+	uint64_t second = 0;
+	uint64_t nanosecond = 0;
+	uint64_t temp_ul = 0;
 
 	nc_verb_verbose("%s is called", __func__);
 	/* check if the flow meter is enabled */
@@ -1397,7 +1398,7 @@ int probe_qci_sgi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* stream-filter-instance-id */
 	item = cJSON_GetObjectItem(json_ob, "index");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "stream-gate-instance-id",
@@ -1413,8 +1414,8 @@ int probe_qci_sgi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* config-change-time */
 	item = cJSON_GetObjectItem(json_ob, "configchange time");
 	if (item) {
-		second = ((unsigned long)item->valuedouble/1000000000);
-		nanosecond = ((unsigned long)item->valuedouble%1000000000);
+		second = ((uint64_t)item->valuedouble/1000000000);
+		nanosecond = ((uint64_t)item->valuedouble%1000000000);
 		time_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "config-change-time", NULL);
 		sprintf(temp, "%ld", second);
@@ -1428,7 +1429,7 @@ int probe_qci_sgi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* tick-granularity */
 	item = cJSON_GetObjectItem(json_ob, "tick");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "tick-granularity",
@@ -1442,8 +1443,8 @@ int probe_qci_sgi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* current-time */
 	item = cJSON_GetObjectItem(json_ob, "currenttime");
 	if (item) {
-		second = ((unsigned long)item->valuedouble/1000000000);
-		nanosecond = ((unsigned long)item->valuedouble%1000000000);
+		second = ((uint64_t)item->valuedouble/1000000000);
+		nanosecond = ((uint64_t)item->valuedouble%1000000000);
 		time_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "current-time", NULL);
 		sprintf(temp, "%ld", second);
@@ -1500,7 +1501,7 @@ int probe_qci_fmi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	cJSON *item;
 	int node_cnt = 0;
 
-	unsigned long temp_ul = 0;
+	uint64_t temp_ul = 0;
 
 	nc_verb_verbose("%s is called", __func__);
 	/* check if the flow meter is enabled */
@@ -1510,7 +1511,7 @@ int probe_qci_fmi_xml_from_json(xmlNodePtr xml_node, cJSON *json_ob)
 	/* stream-filter-instance-id */
 	item = cJSON_GetObjectItem(json_ob, "index");
 	if (item) {
-		temp_ul = ((unsigned long)item->valuedouble);
+		temp_ul = ((uint64_t)item->valuedouble);
 		sprintf(temp, "%ld", temp_ul);
 		tmp_node = xmlNewChild(xml_node, NULL,
 				       BAD_CAST "flow-meter-instance-id",
@@ -1743,6 +1744,7 @@ int get_qci_flow_meter_instance_status(char *port, xmlNodePtr para_node,
 out:
 	return rc;
 }
+
 int get_qci_flow_meters_status(char *port, xmlNodePtr para_node,
 	int max_list_num)
 {
@@ -1769,6 +1771,490 @@ int get_qci_flow_meters_status(char *port, xmlNodePtr para_node,
 			xmlAddChild(para_node, table_node);
 		free_doc_mem(sub_doc);
 	}
+out:
+	return rc;
+}
+
+int get_sfi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
+{
+	int rc = EXIT_SUCCESS;
+	FILE *fp;
+	int len = 8;
+	cJSON *json, *item;
+	char temp[80] = {0};
+	xmlNodePtr sfi_node, table_node, filter_list;
+	cJSON *over_en, *max_sdu, *flow_id;
+	char *json_data;
+	struct tsn_qci_psfp_sfi_conf sfi;
+	uint64_t temp_ul = 0;
+	int8_t pri;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	init_tsn_socket();
+	rc = tsn_qci_psfp_sfi_get(port, index, &sfi);
+	close_tsn_socket();
+	if (rc < 0)
+		return rc;
+
+	/* Get json node */
+	fp = fopen(TSNTOOL_PORT_ST_FILE, "r");
+	if (!fp) {
+		nc_verb_verbose("open '%s' error", TSNTOOL_PORT_ST_FILE);
+		rc = EXIT_FAILURE;
+		goto out;
+	}
+	fseek(fp, 0, SEEK_END);
+	len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	json_data = (char *)malloc(len+1);
+	if (!json_data) {
+		nc_verb_verbose("alloc memory for json failed");
+		rc = EXIT_FAILURE;
+		goto out1;
+	}
+	fread(json_data, 1, len, fp);
+	json = cJSON_Parse(json_data);
+	if (!json) {
+		nc_verb_verbose("parse json data failed");
+		rc = EXIT_FAILURE;
+		goto out2;
+	}
+
+	sfi_node = xmlNewChild(node, NULL, BAD_CAST "stream-filters", NULL);
+	ns = xmlNewNs(sfi_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
+	xmlSetNs(sfi_node, ns);
+	table_node = xmlNewChild(sfi_node, NULL,
+			       BAD_CAST "stream-filter-instance-table", NULL);
+	if (table_node == NULL) {
+		rc = EXIT_FAILURE;
+		goto out3;
+	}
+	/* stream-filter-instance-id */
+	item = cJSON_GetObjectItem(json, "index");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "stream-filter-instance-id",
+			    BAD_CAST temp);
+	}
+	/* streamhandle */
+	item = cJSON_GetObjectItem(json, "streamhandle");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL, BAD_CAST "stream-handle",
+			    BAD_CAST temp);
+	}
+	/* priority */
+	item = cJSON_GetObjectItem(json, "priority");
+	if (item) {
+		pri = ((int8_t)item->valuedouble);
+		pri_int2yangstr(pri, temp);
+		xmlNewChild(table_node, NULL, BAD_CAST "priority-spec",
+			    BAD_CAST temp);
+	}
+	/* gateid */
+	item = cJSON_GetObjectItem(json, "gateid");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL, BAD_CAST "stream-gate-ref",
+			    BAD_CAST temp);
+	}
+	/* filter specification list */
+	max_sdu = cJSON_GetObjectItem(json, "maxsdu");
+	over_en = cJSON_GetObjectItem(json, "oversize enable");
+	flow_id = cJSON_GetObjectItem(json, "flowid");
+	if (max_sdu || over_en || flow_id) {
+		filter_list = xmlNewChild(table_node, NULL,
+			    BAD_CAST "filter-specification-list", NULL);
+		if (!filter_list)
+			goto out3;
+
+		xmlNewTextChild(filter_list, NULL,
+			    BAD_CAST "index", BAD_CAST "0");
+		if (max_sdu) {
+			temp_ul = ((uint64_t)max_sdu->valuedouble);
+			sprintf(temp, "%ld", temp_ul);
+			xmlNewChild(filter_list, NULL,
+				    BAD_CAST "maximum-sdu-size",
+				    BAD_CAST temp);
+		}
+		/* flow meter id */
+		if (flow_id) {
+			temp_ul = ((uint64_t)flow_id->valuedouble);
+			sprintf(temp, "%ld", temp_ul);
+			xmlNewChild(filter_list, NULL,
+				    BAD_CAST "flow-meter-ref",
+				    BAD_CAST temp);
+		}
+		sprintf(temp, "stream-blocked-due-to-oversize-frame-enabled");
+		if (over_en)
+			xmlNewChild(filter_list, NULL, BAD_CAST temp,
+				    BAD_CAST "true");
+		else
+			xmlNewChild(filter_list, NULL, BAD_CAST temp,
+				    BAD_CAST "false");
+	}
+out3:
+	cJSON_Delete(json);
+out2:
+	free(json_data);
+out1:
+	fclose(fp);
+out:
+	return rc;
+}
+
+int get_sgi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
+{
+	int rc = EXIT_SUCCESS;
+	FILE *fp;
+	int len = 0, i;
+	cJSON *json, *item, *admin, *gcl;
+	char temp[80] = {0};
+	xmlNodePtr sgi_node, table_node, temp_node;
+	xmlNodePtr para_node, time_node;
+	xmlNodePtr gcl_node;
+	char *json_data;
+	uint64_t temp_ul = 0, second = 0, nanosecond = 0;
+	struct tsn_qci_psfp_sgi_conf sgi;
+	xmlNsPtr sfsg_ns;
+	xmlNsPtr psfp_ns;
+	int8_t pri;
+
+	nc_verb_verbose("%s is called", __func__);
+	init_tsn_socket();
+	rc = tsn_qci_psfp_sgi_get(port, index, &sgi);
+	close_tsn_socket();
+	if (rc < 0)
+		return rc;
+
+	/* Get json node */
+	fp = fopen(TSNTOOL_PORT_ST_FILE, "r");
+	if (!fp) {
+		nc_verb_verbose("open '%s' error", TSNTOOL_PORT_ST_FILE);
+		rc = EXIT_FAILURE;
+		goto out;
+	}
+	fseek(fp, 0, SEEK_END);
+	len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	json_data = (char *)malloc(len+1);
+	if (!json_data) {
+		nc_verb_verbose("alloc memory for json failed");
+		rc = EXIT_FAILURE;
+		goto out1;
+	}
+	fread(json_data, 1, len, fp);
+	json = cJSON_Parse(json_data);
+	if (!json) {
+		nc_verb_verbose("parse json data failed");
+		rc = EXIT_FAILURE;
+		goto out2;
+	}
+
+	sgi_node = xmlNewChild(node, NULL, BAD_CAST "stream-gates", NULL);
+	sfsg_ns = xmlNewNs(sgi_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
+	psfp_ns = xmlNewNs(sgi_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	xmlSetNs(sgi_node, sfsg_ns);
+	table_node = xmlNewChild(sgi_node, sfsg_ns,
+			       BAD_CAST "stream-gate-instance-table", NULL);
+	if (table_node == NULL) {
+		rc = EXIT_FAILURE;
+		goto out3;
+	}
+	/* stream-gate-instance-id */
+	item = cJSON_GetObjectItem(json, "index");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, sfsg_ns,
+			    BAD_CAST "stream-gate-instance-id",
+			    BAD_CAST temp);
+	}
+	/* gate-enable */
+	item = cJSON_GetObjectItem(json, "enable");
+	if (item) {
+		xmlNewChild(table_node, sfsg_ns,
+			    BAD_CAST "gate-enable", BAD_CAST "true");
+	} else {
+		xmlNewChild(table_node, sfsg_ns,
+			    BAD_CAST "gate-enable", BAD_CAST "false");
+		goto out3;
+	}
+	admin = cJSON_GetObjectItem(json, "adminentry");
+	if (!admin)
+		goto out3;
+
+	/* admin-gate-states */
+	item = cJSON_GetObjectItem(admin, "initial state");
+	if (item)
+		xmlNewChild(table_node, sfsg_ns, BAD_CAST "admin-gate-states",
+			    BAD_CAST "true");
+	else
+		xmlNewChild(table_node, sfsg_ns, BAD_CAST "admin-gate-states",
+			    BAD_CAST "false");
+	/* admin-ipv */
+	item = cJSON_GetObjectItem(admin, "initial ipv");
+	if (item) {
+		pri = ((int8_t)item->valuedouble);
+		pri_int2yangstr(pri, temp);
+		xmlNewChild(table_node, sfsg_ns, BAD_CAST "admin-ipv",
+			    BAD_CAST temp);
+	}
+	/* admin-control-list-length */
+	item = cJSON_GetObjectItem(admin, "length");
+	if (item) {
+		len = ((int)item->valuedouble);
+		sprintf(temp, "%d", len);
+		xmlNewChild(table_node, psfp_ns,
+			    BAD_CAST "admin-control-list-length",
+			    BAD_CAST temp);
+	}
+	/* admin-cycle-time */
+	item = cJSON_GetObjectItem(admin, "cycle time");
+	if (item) {
+		temp_node = xmlNewChild(table_node, psfp_ns,
+					BAD_CAST "admin-cycle-time",
+					NULL);
+		temp_ul = (uint64_t)(item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewTextChild(temp_node, NULL, BAD_CAST "numerator",
+				BAD_CAST temp);
+		xmlNewTextChild(temp_node, NULL,
+				BAD_CAST "denominator",
+				BAD_CAST "1000000000");
+	}
+	/* admin-cycle-time-extension */
+	item = cJSON_GetObjectItem(admin, "cycle time extend");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, psfp_ns,
+			    BAD_CAST "admin-cycle-time-extension",
+			    BAD_CAST temp);
+	}
+	/* basetime */
+	item = cJSON_GetObjectItem(admin, "basetime");
+	if (item) {
+		second = ((uint64_t)item->valuedouble/1000000000);
+		nanosecond = ((uint64_t)item->valuedouble%1000000000);
+		time_node = xmlNewChild(table_node, psfp_ns,
+					BAD_CAST "admin-base-time",
+					NULL);
+		sprintf(temp, "%ld", second);
+		xmlNewTextChild(time_node, psfp_ns, BAD_CAST "seconds",
+				BAD_CAST temp);
+		sprintf(temp, "%ld", nanosecond);
+		xmlNewTextChild(time_node, NULL,
+				BAD_CAST "nanoseconds",
+				BAD_CAST temp);
+	}
+	/* control list */
+	for (i = 0; i < len; i++) {
+		gcl = get_list_item(admin, "gatelist", i);
+		if (!gcl)
+			break;
+		gcl_node = xmlNewChild(table_node, psfp_ns,
+				       BAD_CAST "admin-control-list",
+				       BAD_CAST NULL);
+		sprintf(temp, "%d", i);
+		xmlNewTextChild(gcl_node, NULL, BAD_CAST "index",
+				BAD_CAST temp);
+		xmlNewTextChild(gcl_node, NULL, BAD_CAST "operation-name",
+				BAD_CAST "psfp:set-gate-and-ipv");
+		para_node = xmlNewChild(gcl_node, NULL,
+					BAD_CAST "parameters", NULL);
+		item = cJSON_GetObjectItem(gcl, "gate state");
+		if (item)
+			xmlNewChild(para_node, NULL,
+				    BAD_CAST "gate-state-value",
+				    BAD_CAST "open");
+		else
+			xmlNewChild(para_node, NULL,
+				    BAD_CAST "gate-state-value",
+				    BAD_CAST "closed");
+
+		item = cJSON_GetObjectItem(gcl, "ipv");
+		if (item) {
+			pri = ((int8_t)item->valuedouble);
+			pri_int2yangstr(pri, temp);
+			xmlNewChild(para_node, NULL,
+				    BAD_CAST "ipv-value",
+				    BAD_CAST temp);
+		}
+
+		item = cJSON_GetObjectItem(gcl, "time interval");
+		if (item) {
+			temp_ul = ((uint64_t)item->valuedouble);
+			sprintf(temp, "%ld", temp_ul);
+			xmlNewChild(para_node, NULL,
+				    BAD_CAST "time-interval-value",
+				    BAD_CAST temp);
+		}
+
+		item = cJSON_GetObjectItem(gcl, "octmax");
+		if (item) {
+			temp_ul = ((uint64_t)item->valuedouble);
+			sprintf(temp, "%ld", temp_ul);
+			xmlNewChild(para_node, NULL,
+				    BAD_CAST "interval-octet-max",
+				    BAD_CAST temp);
+		}
+	}
+
+out3:
+	cJSON_Delete(json);
+out2:
+	free(json_data);
+out1:
+	fclose(fp);
+out:
+	return rc;
+}
+
+int get_fmi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
+{
+	int rc = EXIT_SUCCESS;
+	FILE *fp;
+	int len = 0;
+	cJSON *json, *item;
+	char temp[80] = {0};
+	xmlNodePtr fmi_node, table_node;
+	char *json_data;
+	struct tsn_qci_psfp_fmi fmi;
+	uint64_t temp_ul = 0;
+	xmlNsPtr ns;
+
+	nc_verb_verbose("%s is called", __func__);
+	init_tsn_socket();
+	rc = tsn_qci_psfp_fmi_get(port, index, &fmi);
+	close_tsn_socket();
+	if (rc < 0)
+		return rc;
+
+	/* Get json node */
+	fp = fopen(TSNTOOL_PORT_ST_FILE, "r");
+	if (!fp) {
+		nc_verb_verbose("open '%s' error", TSNTOOL_PORT_ST_FILE);
+		rc = EXIT_FAILURE;
+		goto out;
+	}
+	fseek(fp, 0, SEEK_END);
+	len = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	json_data = (char *)malloc(len+1);
+	if (!json_data) {
+		nc_verb_verbose("alloc memory for json failed");
+		rc = EXIT_FAILURE;
+		goto out1;
+	}
+	fread(json_data, 1, len, fp);
+	json = cJSON_Parse(json_data);
+	if (!json) {
+		nc_verb_verbose("parse json data failed");
+		rc = EXIT_FAILURE;
+		goto out2;
+	}
+
+	fmi_node = xmlNewChild(node, NULL, BAD_CAST "flow-meters", NULL);
+	ns = xmlNewNs(fmi_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	xmlSetNs(fmi_node, ns);
+	table_node = xmlNewChild(fmi_node, NULL,
+			       BAD_CAST "flow-meter-instance-table", NULL);
+	if (table_node == NULL) {
+		rc = EXIT_FAILURE;
+		goto out3;
+	}
+	/* flow-meter-instance-id */
+	item = cJSON_GetObjectItem(json, "index");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL, BAD_CAST "flow-meter-instance-id",
+			    BAD_CAST temp);
+	}
+	/* cir */
+	item = cJSON_GetObjectItem(json, "cir");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		temp_ul *= 1000;
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "committed-information-rate",
+			    BAD_CAST temp);
+	}
+	/* cbs */
+	item = cJSON_GetObjectItem(json, "cbs");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "committed-burst-size",
+			    BAD_CAST temp);
+	}
+	/* eir */
+	item = cJSON_GetObjectItem(json, "eir");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		temp_ul *= 1000;
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "excess-information-rate",
+			    BAD_CAST temp);
+	}
+	/* ebs */
+	item = cJSON_GetObjectItem(json, "ebs");
+	if (item) {
+		temp_ul = ((uint64_t)item->valuedouble);
+		sprintf(temp, "%ld", temp_ul);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "excess-burst-size",
+			    BAD_CAST temp);
+	}
+	/* couple flag */
+	item = cJSON_GetObjectItem(json, "couple flag");
+	if (item)
+		xmlNewChild(table_node, NULL, BAD_CAST "coupling-flag",
+			    BAD_CAST "Coupled");
+	else
+		xmlNewChild(table_node, NULL, BAD_CAST "coupling-flag",
+			    BAD_CAST "Uncoupled");
+	/* couple mode */
+	item = cJSON_GetObjectItem(json, "color mode");
+	if (item)
+		xmlNewChild(table_node, NULL, BAD_CAST "color-mode",
+			    BAD_CAST "color-aware");
+	else
+		xmlNewChild(table_node, NULL, BAD_CAST "color-mode",
+			    BAD_CAST "color-blind");
+	/* drop-on-yellow */
+	item = cJSON_GetObjectItem(json, "drop yellow");
+	if (item)
+		xmlNewChild(table_node, NULL, BAD_CAST "drop-on-yellow",
+			    BAD_CAST "true");
+	else
+		xmlNewChild(table_node, NULL, BAD_CAST "drop-on-yellow",
+			    BAD_CAST "false");
+	/* mark-all-frames-red-enable */
+	item = cJSON_GetObjectItem(json, "mark red enable");
+	if (item)
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "mark-all-frames-red-enable",
+			    BAD_CAST "true");
+	else
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "mark-all-frames-red-enable",
+			    BAD_CAST "false");
+out3:
+	cJSON_Delete(json);
+out2:
+	free(json_data);
+out1:
+	fclose(fp);
 out:
 	return rc;
 }
