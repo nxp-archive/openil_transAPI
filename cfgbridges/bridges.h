@@ -21,6 +21,8 @@
 #define PSFP_PREFIX	"psfp"
 #define CB_NS		"urn:ieee:std:802.1Q:yang:ieee802-dot1q-stream-id"
 #define CB_PREFIX	"stream"
+#define QCI_AUGMENT_NS		"urn:ieee:std:802.1Q:yang:ieee802-dot1q-qci-augment"
+#define QCI_AUGMENT_PREFIX	"qci-augment"
 
 #define BRIDGE_DS "/usr/local/etc/netopeer/transapi/cfgbridges/datastore.xml"
 #define BRIDGE_DS_BAK "/usr/local/etc/netopeer/transapi/cfgbridges/datastore-bak.xml"

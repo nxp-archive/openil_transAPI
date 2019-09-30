@@ -149,6 +149,8 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	xmlNewNs(bds_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
 	xmlNewNs(bds_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
 	xmlNewNs(bds_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+	xmlNewNs(bds_node, BAD_CAST QCI_AUGMENT_NS,
+		 BAD_CAST QCI_AUGMENT_PREFIX);
 	xmlSaveFormatFileEnc(BRIDGE_DS_BAK, doc_bak, "UTF-8", 1);
 	xmlFreeDoc(doc_bak);
 	//create tsn operation record file if not exits
@@ -222,8 +224,11 @@ xmlDocPtr get_state_data(__attribute__((unused)) xmlDocPtr model,
 	xmlNewNs(root, BAD_CAST "urn:cesnet:tmc:datastores:file", NULL);
 	xmlDocSetRootElement(doc, root);
 	bridges_node = xmlNewChild(root, NULL, BAD_CAST "bridges", NULL);
-	ns = xmlNewNs(bridges_node, BAD_CAST BRIDGE_NS,
-		      BAD_CAST BRIDGE_PREFIX);
+	ns = xmlNewNs(bridges_node, BAD_CAST BRIDGE_NS, BAD_CAST BRIDGE_PREFIX);
+	xmlNewNs(bridges_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
+	xmlNewNs(bridges_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+	xmlNewNs(bridges_node, BAD_CAST QCI_AUGMENT_NS,
+		 BAD_CAST QCI_AUGMENT_PREFIX);
 	xmlSetNs(bridge_node, ns);
 
 	/* add switch ports */
@@ -298,6 +303,7 @@ struct ns_pair namespace_mapping[] = {
 	{SFSG_PREFIX, SFSG_NS},
 	{IANAIF_PREFIX, IANAIF_NS},
 	{CB_PREFIX, CB_NS},
+	{QCI_AUGMENT_PREFIX, QCI_AUGMENT_NS},
 	{NULL, NULL}
 };
 
@@ -571,7 +577,7 @@ out:
  * DO NOT alter this structure
  */
 struct transapi_data_callbacks clbks =  {
-	.callbacks_count = 77,
+	.callbacks_count = 80,
 	.data = NULL,
 	.callbacks = {
 		{.path = "/dot1q:bridges", .func = callback_bridges},
@@ -582,7 +588,10 @@ struct transapi_data_callbacks clbks =  {
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters", .func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table",
 			.func = callback_bridge_stream_filters},
-		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:stream-filter-instance-id", .func = callback_bridge_stream_filters},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:stream-filter-instance-id",
+			.func = callback_bridge_stream_filters},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/qci-augment:stream-filter-enabled",
+			.func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:wildcard",
 			.func = callback_bridge_stream_filters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-filter-instance-table/sfsg:stream-handle",
@@ -632,6 +641,8 @@ struct transapi_data_callbacks clbks =  {
 			.func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:flow-meter-instance-id",
 			.func = callback_bridge_flow_meters},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/sfsg:stream-filters/sfsg:stream-gate-instance-table/qci-augment:flow-meter-enabled",
+			.func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:committed-information-rates", .func = callback_bridge_flow_meters},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/psfp:flow-meters/psfp:flow-meter-instance-table/psfp:committed-burst-size",
 			.func = callback_bridge_flow_meters},
@@ -655,6 +666,8 @@ struct transapi_data_callbacks clbks =  {
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:index",
 			.func = callback_bridge_stream_id},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:stream-handle",
+			.func = callback_bridge_stream_id},
+		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:stream-id-enabled",
 			.func = callback_bridge_stream_id},
 		{.path = "/dot1q:bridges/dot1q:bridge/dot1q:component/stream:streams/stream:stream-identity-table/stream:in-facing-output-port-list",
 			.func = callback_bridge_stream_id},
@@ -824,6 +837,8 @@ int bridges_tsn_opr_change_cb(const char *filepath,
 	ns = xmlNewNs(bds_new_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
 	ns = xmlNewNs(bds_new_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
 	ns = xmlNewNs(bds_new_node, BAD_CAST CB_NS, BAD_CAST CB_PREFIX);
+	ns = xmlNewNs(bds_new_node, BAD_CAST QCI_AUGMENT_NS,
+		      BAD_CAST QCI_AUGMENT_PREFIX);
 
 	tmp = xmlNewChild(bds_new_node, NULL, BAD_CAST "bridge", NULL);
 	if (strncmp(record.portname, "eno", 3) == 0)
