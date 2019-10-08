@@ -235,7 +235,7 @@ int get_qbu_from_json(struct tsn_preempt_status *pts)
 	fread(json_data, 1, len, fp);
 	json = cJSON_Parse(json_data);
 	if (!json) {
-		nc_verb_verbose("json parse error");
+		nc_verb_verbose("qbu json parse error");
 		free(json_data);
 		fclose(fp);
 		rc = EXIT_FAILURE;

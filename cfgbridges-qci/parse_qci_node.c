@@ -1608,7 +1608,7 @@ int get_qci_stream_filter_instance_status(char *port, xmlNodePtr para_node,
 				cnt = probe_qci_sfi_xml_from_json(para_node,
 								  json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci1 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {
@@ -1683,7 +1683,7 @@ int get_qci_stream_gate_instance_status(char *port, xmlNodePtr para_node,
 				cnt = probe_qci_sgi_xml_from_json(para_node,
 								  json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci2 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {
@@ -1759,7 +1759,7 @@ int get_qci_flow_meter_instance_status(char *port, xmlNodePtr para_node,
 			if (json)
 				probe_qci_fmi_xml_from_json(para_node, json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci3 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bridges xmlns="urn:ieee:std:802.1Q:yang:ieee802-dot1q-bridge"
+         xmlns:stream="urn:ieee:std:802.1Q:yang:ieee802-dot1q-stream-id">
+	<bridge>
+                <name>enetc</name>
+		<bridge-type>provider-edge-bridge</bridge-type>
+                <component>
+                    <name>eno0</name>
+		    <type>edge-relay-component</type>
+                    <stream:streams>
+                        <stream:stream-identity-table>
+                            <stream:index>3</stream:index>
+                            <stream:stream-id-enabled>false</stream:stream-id-enabled>
+                        </stream:stream-identity-table>
+                        <stream:stream-identity-table>
+                            <stream:index>4</stream:index>
+                            <stream:stream-id-enabled>false</stream:stream-id-enabled>
+                        </stream:stream-identity-table>
+                    </stream:streams>
+                </component>
+                <component>
+                    <name>swp0</name>
+                    <stream:streams>
+                        <stream:stream-identity-table>
+                            <stream:index>100</stream:index>
+                            <stream:stream-id-enabled>false</stream:stream-id-enabled>
+                        </stream:stream-identity-table>
+                        <stream:stream-identity-table>
+                            <stream:index>88</stream:index>
+                            <stream:stream-id-enabled>false</stream:stream-id-enabled>
+                        </stream:stream-identity-table>
+                    </stream:streams>
+                </component>
+	</bridge>
+</bridges>

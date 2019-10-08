@@ -53,8 +53,8 @@ void free_stream_memory(struct std_cb_stream_table *stream_table)
 
 	while (tmp_table) {
 		next_table = tmp_table->next;
-		//nc_verb_verbose("%p is freed", tmp_table);
-		//nc_verb_verbose("%p is freed", tmp_table->stream_ptr);
+		nc_verb_verbose("%p is freed", tmp_table);
+		nc_verb_verbose("%p is freed", tmp_table->stream_ptr);
 		if (tmp_table->stream_ptr)
 			free(tmp_table->stream_ptr);
 		free(tmp_table);
