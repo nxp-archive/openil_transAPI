@@ -269,6 +269,21 @@ int parse_stream_filter_table(xmlNode *node,
 			if (rc < 0)
 				goto out;
 			cur_sfi->stream_filter_instance_id = (uint8_t)tmp;
+		} else if (strcmp(content, "stream-filter-enabled") == 0) {
+			rc = xml_read_field(tmp_node, content, ele_val,
+					    err_msg, node_path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
+
+			if (strcmp(ele_val, "true") == 0) {
+				sfi_table->sfi_ptr->enable = TRUE;
+			} else if (strcmp(ele_val, "false") == 0) {
+				sfi_table->sfi_ptr->enable = FALSE;
+			} else {
+				prt_err_bool(err_msg, content, node_path);
+				rc = EXIT_SUCCESS;
+				goto out;
+			}
 		} else if (strcmp(content, "wildcard") == 0) {
 			stream_handle_spec++;
 			cur_sfi->sficonf.stream_handle_spec = -1;
@@ -343,7 +358,6 @@ int parse_stream_filter_table(xmlNode *node,
 			"'%s' in '%s' is a choice node, please use one case!",
 			content, node_path);
 	}
-	sfi_table->sfi_ptr->enable = 1;
 out:
 	return rc;
 }
@@ -1006,7 +1020,21 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 			if (rc < 0)
 				goto out;
 			cur_fmi_ptr->fmi_id = (uint32_t)tmp;
-			cur_fmi_ptr->enable = TRUE;
+		} else if (strcmp(content, "flow-meter-enabled") == 0) {
+			rc = xml_read_field(tmp_node, content, ele_val,
+					    err_msg, node_path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
+
+			if (strcmp(ele_val, "true") == 0) {
+				cur_fmi_ptr->enable = TRUE;
+			} else if (strcmp(ele_val, "false") == 0) {
+				cur_fmi_ptr->enable = FALSE;
+			} else {
+				prt_err_bool(err_msg, content, node_path);
+				rc = EXIT_SUCCESS;
+				goto out;
+			}
 		} else if (strcmp(content,
 				  "committed-information-rate") == 0) {
 			rc = xml_read_field(tmp_node, content,
@@ -1580,7 +1608,7 @@ int get_qci_stream_filter_instance_status(char *port, xmlNodePtr para_node,
 				cnt = probe_qci_sfi_xml_from_json(para_node,
 								  json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci1 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {
@@ -1655,7 +1683,7 @@ int get_qci_stream_gate_instance_status(char *port, xmlNodePtr para_node,
 				cnt = probe_qci_sgi_xml_from_json(para_node,
 								  json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci2 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {
@@ -1731,7 +1759,7 @@ int get_qci_flow_meter_instance_status(char *port, xmlNodePtr para_node,
 			if (json)
 				probe_qci_fmi_xml_from_json(para_node, json);
 			else
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qci3 json parse error");
 			cJSON_Delete(json);
 			free(json_data);
 		} else {
@@ -1824,6 +1852,8 @@ int get_sfi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
 	sfi_node = xmlNewChild(node, NULL, BAD_CAST "stream-filters", NULL);
 	ns = xmlNewNs(sfi_node, BAD_CAST SFSG_NS, BAD_CAST SFSG_PREFIX);
 	xmlSetNs(sfi_node, ns);
+	ns = xmlNewNs(sfi_node, BAD_CAST QCI_AUGMENT_NS,
+		      BAD_CAST QCI_AUGMENT_PREFIX);
 	table_node = xmlNewChild(sfi_node, NULL,
 			       BAD_CAST "stream-filter-instance-table", NULL);
 	if (table_node == NULL) {
@@ -1838,6 +1868,16 @@ int get_sfi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
 		xmlNewChild(table_node, NULL,
 			    BAD_CAST "stream-filter-instance-id",
 			    BAD_CAST temp);
+	}
+	/* enable */
+	item = cJSON_GetObjectItem(json, "enable");
+	if (item) {
+		xmlNewChild(table_node, ns, BAD_CAST "stream-filter-enabled",
+			    BAD_CAST "true");
+	} else {
+		xmlNewChild(table_node, ns, BAD_CAST "stream-filter-enabled",
+			    BAD_CAST "false");
+		goto out3;
 	}
 	/* streamhandle */
 	item = cJSON_GetObjectItem(json, "streamhandle");
@@ -2127,7 +2167,9 @@ int get_fmi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
 	char *json_data;
 	struct tsn_qci_psfp_fmi fmi;
 	uint64_t temp_ul = 0;
+	uint64_t cir = 0, cbs = 0, eir = 0, ebs = 0;
 	xmlNsPtr ns;
+	int cnt = 0;
 
 	nc_verb_verbose("%s is called", __func__);
 	init_tsn_socket();
@@ -2163,6 +2205,8 @@ int get_fmi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
 	fmi_node = xmlNewChild(node, NULL, BAD_CAST "flow-meters", NULL);
 	ns = xmlNewNs(fmi_node, BAD_CAST PSFP_NS, BAD_CAST PSFP_PREFIX);
 	xmlSetNs(fmi_node, ns);
+	ns = xmlNewNs(fmi_node, BAD_CAST QCI_AUGMENT_NS,
+		      BAD_CAST QCI_AUGMENT_PREFIX);
 	table_node = xmlNewChild(fmi_node, NULL,
 			       BAD_CAST "flow-meter-instance-table", NULL);
 	if (table_node == NULL) {
@@ -2180,40 +2224,59 @@ int get_fmi_config(char *port, xmlNodePtr node, int mode, uint32_t index)
 	/* cir */
 	item = cJSON_GetObjectItem(json, "cir");
 	if (item) {
-		temp_ul = ((uint64_t)item->valuedouble);
-		temp_ul *= 1000;
-		sprintf(temp, "%ld", temp_ul);
-		xmlNewChild(table_node, NULL,
-			    BAD_CAST "committed-information-rate",
-			    BAD_CAST temp);
+		cir = ((uint64_t)item->valuedouble);
+		cir *= 1000;
+		if (cir)
+			cnt++;
 	}
 	/* cbs */
 	item = cJSON_GetObjectItem(json, "cbs");
 	if (item) {
-		temp_ul = ((uint64_t)item->valuedouble);
-		sprintf(temp, "%ld", temp_ul);
-		xmlNewChild(table_node, NULL,
-			    BAD_CAST "committed-burst-size",
-			    BAD_CAST temp);
+		cbs = ((uint64_t)item->valuedouble);
+		if (cbs)
+			cnt++;
 	}
 	/* eir */
 	item = cJSON_GetObjectItem(json, "eir");
 	if (item) {
-		temp_ul = ((uint64_t)item->valuedouble);
-		temp_ul *= 1000;
-		sprintf(temp, "%ld", temp_ul);
-		xmlNewChild(table_node, NULL,
-			    BAD_CAST "excess-information-rate",
-			    BAD_CAST temp);
+		eir = ((uint64_t)item->valuedouble);
+		eir *= 1000;
+		if (eir)
+			cnt++;
 	}
 	/* ebs */
 	item = cJSON_GetObjectItem(json, "ebs");
 	if (item) {
-		temp_ul = ((uint64_t)item->valuedouble);
-		sprintf(temp, "%ld", temp_ul);
+		ebs = ((uint64_t)item->valuedouble);
+		if (ebs)
+			cnt++;
+	}
+	/* flow-meter-enabled */
+	if (cnt) {
+		xmlNewChild(table_node, ns,
+			    BAD_CAST "flow-meter-enabled",
+			    BAD_CAST "true");
+		sprintf(temp, "%ld", cir);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "committed-information-rate",
+			    BAD_CAST temp);
+		sprintf(temp, "%ld", cbs);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "committed-burst-size",
+			    BAD_CAST temp);
+		sprintf(temp, "%ld", eir);
+		xmlNewChild(table_node, NULL,
+			    BAD_CAST "excess-information-rate",
+			    BAD_CAST temp);
+		sprintf(temp, "%ld", ebs);
 		xmlNewChild(table_node, NULL,
 			    BAD_CAST "excess-burst-size",
 			    BAD_CAST temp);
+	} else {
+		xmlNewChild(table_node, ns,
+			    BAD_CAST "flow-meter-enabled",
+			    BAD_CAST "false");
+		goto out3;
 	}
 	/* couple flag */
 	item = cJSON_GetObjectItem(json, "couple flag");

@@ -732,7 +732,7 @@ RETRY:
 				}
 				cJSON_Delete(json);
 			} else {
-				nc_verb_verbose("json parse error");
+				nc_verb_verbose("qbv json parse error");
 			}
 			free(json_data);
 		} else {

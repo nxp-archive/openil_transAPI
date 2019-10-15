@@ -3,14 +3,14 @@
          xmlns:stream="urn:ieee:std:802.1Q:yang:ieee802-dot1q-stream-id">
 	<bridge>
                 <name>enetc</name>
-                <address>00:01:83:fe:12:01</address>
-                <bridge-type>provider-edge-bridge</bridge-type>
+		<bridge-type>provider-edge-bridge</bridge-type>
                 <component>
                     <name>eno0</name>
-                    <type>edge-relay-component</type>
+		    <type>edge-relay-component</type>
                     <stream:streams>
                         <stream:stream-identity-table>
                             <stream:index>3</stream:index>
+                            <stream:stream-id-enabled>true</stream:stream-id-enabled>
                             <stream:stream-handle>100</stream:stream-handle>
                             <stream:in-facing-output-port-list>0</stream:in-facing-output-port-list>
                             <stream:out-facing-output-port-list>0</stream:out-facing-output-port-list>
@@ -27,6 +27,7 @@
                         </stream:stream-identity-table>
                         <stream:stream-identity-table>
                             <stream:index>4</stream:index>
+                            <stream:stream-id-enabled>true</stream:stream-id-enabled>
                             <stream:stream-handle>200</stream:stream-handle>
                             <stream:in-facing-output-port-list>0</stream:in-facing-output-port-list>
                             <stream:out-facing-output-port-list>0</stream:out-facing-output-port-list>
@@ -45,10 +46,10 @@
                 </component>
                 <component>
                     <name>swp0</name>
-                    <type>edge-relay-component</type>
                     <stream:streams>
                         <stream:stream-identity-table>
                             <stream:index>100</stream:index>
+                            <stream:stream-id-enabled>true</stream:stream-id-enabled>
                             <stream:stream-handle>100</stream:stream-handle>
                             <stream:in-facing-output-port-list>0</stream:in-facing-output-port-list>
                             <stream:out-facing-output-port-list>0</stream:out-facing-output-port-list>
@@ -65,6 +66,7 @@
                         </stream:stream-identity-table>
                         <stream:stream-identity-table>
                             <stream:index>88</stream:index>
+                            <stream:stream-id-enabled>true</stream:stream-id-enabled>
                             <stream:stream-handle>88</stream:stream-handle>
                             <stream:in-facing-output-port-list>0</stream:in-facing-output-port-list>
                             <stream:out-facing-output-port-list>0</stream:out-facing-output-port-list>

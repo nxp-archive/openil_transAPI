@@ -99,6 +99,7 @@ cJSON *open_json_safe(char *file, char *mode)
 	char *json_data;
 	cJSON *json;
 
+	nc_verb_verbose("commen json open");
 	errno = 0;
 	fp = fopen(file, mode);
 	if (!fp) {
@@ -121,7 +122,7 @@ cJSON *open_json_safe(char *file, char *mode)
 		fread(json_data, 1, len, fp);
 		json = cJSON_Parse(json_data);
 		if (!json) {
-			nc_verb_verbose("json parse error");
+			nc_verb_verbose("commont json parse error");
 			free(json_data);
 			fclose(fp);
 			flock(fp->_fileno, LOCK_UN);

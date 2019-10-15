@@ -2,18 +2,18 @@
 
 <bridges xmlns="urn:ieee:std:802.1Q:yang:ieee802-dot1q-bridge"
          xmlns:sfsg="urn:ieee:std:802.1Q:yang:ieee802-dot1q-stream-filters-gates"
-         xmlns:psfp="urn:ieee:std:802.1Q:yang:ieee802-dot1q-psfp">
+         xmlns:psfp="urn:ieee:std:802.1Q:yang:ieee802-dot1q-psfp"
+	 xmlns:qci-augment="urn:ieee:std:802.1Q:yang:ieee802-dot1q-qci-augment">
 	<bridge>
         <name>switch</name>
-        <address>00:01:83:fe:12:01</address>
-        <bridge-type>provider-edge-bridge</bridge-type>
+	<bridge-type>provider-edge-bridge</bridge-type>
         <component>
             <name>swp0</name>
-            <type>edge-relay-component</type>
+	    <type>edge-relay-component</type>
             <sfsg:stream-filters>
                 <sfsg:stream-filter-instance-table>
                     <sfsg:stream-filter-instance-id>1</sfsg:stream-filter-instance-id>
-                    <sfsg:wildcard/>
+		    <qci-augment:stream-filter-enabled>true</qci-augment:stream-filter-enabled>
                     <sfsg:priority-spec>two</sfsg:priority-spec>
                     <sfsg:stream-gate-ref>1</sfsg:stream-gate-ref>
                     <sfsg:filter-specification-list>
@@ -31,7 +31,7 @@
                 </sfsg:stream-filter-instance-table>
                 <sfsg:stream-filter-instance-table>
                     <sfsg:stream-filter-instance-id>2</sfsg:stream-filter-instance-id>
-                    <sfsg:wildcard/>
+		    <qci-augment:stream-filter-enabled>true</qci-augment:stream-filter-enabled>
                     <sfsg:priority-spec>two</sfsg:priority-spec>
                     <sfsg:stream-gate-ref>1</sfsg:stream-gate-ref>
                     <sfsg:filter-specification-list>

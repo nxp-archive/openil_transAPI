@@ -38,6 +38,12 @@ module ieee802-dot1q-cb-stream-identification {
               subparameter is equal to the entry’s tsnStreamIdHandle
               object.";
           }
+	  leaf stream-id-enabled {
+	    type boolean;
+            mandatory true;
+	    description
+	      "specify whether this entry was enabled.";
+	  }
           leaf in-facing-output-port-list {
             type uint32;
             description
@@ -72,6 +78,7 @@ module ieee802-dot1q-cb-stream-identification {
               direction.";
           }
           leaf identification-type {
+            mandatory true;
             type enumeration {
               enum null {
                 value 1;

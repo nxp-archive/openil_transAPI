@@ -53,8 +53,8 @@ void free_stream_memory(struct std_cb_stream_table *stream_table)
 
 	while (tmp_table) {
 		next_table = tmp_table->next;
-		//nc_verb_verbose("%p is freed", tmp_table);
-		//nc_verb_verbose("%p is freed", tmp_table->stream_ptr);
+		nc_verb_verbose("%p is freed", tmp_table);
+		nc_verb_verbose("%p is freed", tmp_table->stream_ptr);
 		if (tmp_table->stream_ptr)
 			free(tmp_table->stream_ptr);
 		free(tmp_table);
@@ -670,7 +670,21 @@ int parse_stream_id_table(xmlNode *node,
 				if (rc < 0)
 					goto out;
 				entry->index = (uint32_t)tmp;
+			}
+		} else if (strcmp(content, "stream-id-enabled") == 0) {
+			rc = xml_read_field(tmp_node, content, ele_val,
+					    err_msg, node_path);
+			if (rc != EXIT_SUCCESS)
+				goto out;
+
+			if (strcmp(ele_val, "true") == 0) {
 				entry->enable = TRUE;
+			} else if (strcmp(ele_val, "false") == 0) {
+				entry->enable = FALSE;
+			} else {
+				prt_err_bool(err_msg, content, node_path);
+				rc = EXIT_SUCCESS;
+				goto out;
 			}
 		} else if (strcmp(content, "stream-handle") == 0) {
 			rc = xml_read_field(tmp_node, content, ele_val,
@@ -922,6 +936,16 @@ int get_stream_cfg_xml(xmlNodePtr xml_node, cJSON *json)
 		sprintf(temp, "%d", temp_u32);
 		xmlNewChild(stream_table, NULL,
 			    BAD_CAST "index", BAD_CAST temp);
+	}
+
+	item = cJSON_GetObjectItem(json, "enable");
+	if (item) {
+		xmlNewChild(stream_table, NULL,
+			    BAD_CAST "stream-id-enabled", BAD_CAST "true");
+	} else {
+		xmlNewChild(stream_table, NULL,
+			    BAD_CAST "stream-id-enabled", BAD_CAST "false");
+		return ret;
 	}
 
 	item = cJSON_GetObjectItem(json, "in face out port");

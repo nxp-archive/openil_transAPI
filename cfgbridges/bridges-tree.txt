@@ -165,6 +165,7 @@ module: ieee802-dot1q-bridge
            +--rw sfsg:stream-filters   //augmented by qci models
            |  +--rw sfsg:stream-filter-instance-table* [stream-filter-instance-id]
            |  |  +--rw sfsg:stream-filter-instance-id    uint32
+           |  |  +--rw qci-augment:stream-filter-enabled	boolean
            |  |  +--rw (sfsg:stream-handle-spec)?
            |  |  |  +--:(sfsg:wildcard)
            |  |  |  |  +--rw sfsg:wildcard?              empty
@@ -246,6 +247,7 @@ module: ieee802-dot1q-bridge
            |  +--ro psfp:supported-list-max?           uint32
            +--rw psfp:flow-meters   //augmented by qci models
            |  +--rw psfp:flow-meter-instance-table* [flow-meter-instance-id]
+           |  |  +--rw qci-augment:flow-meter-enabled	boolean
            |  |  +--rw psfp:flow-meter-instance-id        uint32
            |  |  +--rw psfp:committed-information-rate    uint64
            |  |  +--rw psfp:committed-burst-size          uint32
@@ -260,6 +262,7 @@ module: ieee802-dot1q-bridge
            +--rw stream-id:streams    //augmented by cb models
               +--rw stream-id:stream-identity-table* [index]
                  +--rw stream-id:index                          uint32
+                 +--rw stream-id:stream-id-enabled		boolean
                  +--rw stream-id:stream-handle                  uint32
                  +--rw stream-id:in-facing-output-port-list?    uint32
                  +--rw stream-id:out-facing-output-port-list?   uint32
