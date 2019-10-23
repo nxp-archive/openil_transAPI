@@ -37,6 +37,7 @@ static XMLDIFF_OP bridge_stream_filters_op;
 static XMLDIFF_OP bridge_stream_gates_op;
 static XMLDIFF_OP bridge_flow_meters_op;
 static XMLDIFF_OP bridge_stream_id_op;
+static int netconf_oper;
 
 /*
  * Determines the callbacks order.
@@ -100,6 +101,7 @@ int transapi_init(__attribute__((unused)) xmlDocPtr *running)
 	bridge_flow_meters_op = 0;
 	bridge_stream_id_op = 0;
 	config_modified = 0;
+	netconf_oper = 0;
 	/* Init pthread mutex on datastore */
 	pthread_mutex_init(&datastore_mutex, NULL);
 
@@ -426,6 +428,7 @@ int callback_bridges(__attribute__((unused)) void **data,
 
 	nc_verb_verbose("%s is called", __func__);
 
+	netconf_oper = 0;
 	if ((op & XMLDIFF_REM) == 0) {
 		nc_verb_verbose("Remove operation");
 		doc = xmlReadFile(BRIDGE_DS_BAK, NULL, 0);
@@ -476,6 +479,7 @@ int callback_bridge_component(__attribute__((unused)) void **data,
 	/* init socket */
 	genl_tsn_init();
 	init_socket = 1;
+	netconf_oper = 1;
 
 	/* check qci stream filters configuration */
 	if (bridge_cfg_change_ind & QCI_SFI_MASK) {
@@ -806,6 +810,11 @@ int bridges_tsn_opr_change_cb(const char *filepath,
 	xmlNsPtr ns;
 
 	nc_verb_verbose("%s is called", __func__);
+	if (netconf_oper) {
+		nc_verb_verbose("it is netconf oper");
+		return EXIT_SUCCESS;
+	}
+
 	if (get_tsn_record(&record) < 0) {
 		nc_verb_verbose("get record failed");
 		return EXIT_SUCCESS;
