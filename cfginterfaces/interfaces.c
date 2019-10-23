@@ -623,6 +623,10 @@ int interfaces_tsn_opr_change_cb(const char *filepath,
 	xmlNsPtr ns;
 
 	nc_verb_verbose("%s is called", __func__);
+	if (if_operating) {
+		nc_verb_verbose("it is netconf oper");
+		return EXIT_SUCCESS;
+	}
 	if (get_tsn_record(&record) < 0) {
 		nc_verb_verbose("get record failed");
 		return EXIT_SUCCESS;
