@@ -14,7 +14,7 @@
                 <sfsg:stream-filter-instance-table>
                     <sfsg:stream-filter-instance-id>1</sfsg:stream-filter-instance-id>
                     <qci-augment:stream-filter-enabled>true</qci-augment:stream-filter-enabled>
-                    <sfsg:stream-handle-spec>100</sfsg:stream-handle-spec>
+                    <sfsg:stream-handle>100</sfsg:stream-handle>
                     <sfsg:stream-gate-ref>1</sfsg:stream-gate-ref>
                 </sfsg:stream-filter-instance-table>
             </sfsg:stream-filters>
