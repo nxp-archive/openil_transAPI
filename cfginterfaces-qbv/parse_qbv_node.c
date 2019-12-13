@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/inotify.h>
@@ -280,9 +281,9 @@ parse_loop:
 			if (rc != EXIT_SUCCESS)
 				goto out;
 			if (strcmp(ele_val, "true") == 0) {
-				admin_conf->qbv_conf.gate_enabled = TRUE;
+				admin_conf->qbv_conf.gate_enabled = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				admin_conf->qbv_conf.gate_enabled = FALSE;
+				admin_conf->qbv_conf.gate_enabled = false;
 				return rc; // don't need to parse other params
 			} else {
 				prt_err_bool(err_msg, content, node_path);
@@ -332,9 +333,9 @@ parse_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				admin_conf->qbv_conf.config_change = TRUE;
+				admin_conf->qbv_conf.config_change = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				admin_conf->qbv_conf.config_change = FALSE;
+				admin_conf->qbv_conf.config_change = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
