@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/inotify.h>
@@ -678,9 +679,9 @@ int parse_stream_id_table(xmlNode *node,
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				entry->enable = TRUE;
+				entry->enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				entry->enable = FALSE;
+				entry->enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_SUCCESS;

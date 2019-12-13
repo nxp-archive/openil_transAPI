@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/inotify.h>
@@ -196,9 +197,9 @@ int parse_filter_spec_list(xmlNode *node, struct std_qci_psfp_sfi *cur_sfi,
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sfi->sficonf.block_oversize_enable = TRUE;
+				cur_sfi->sficonf.block_oversize_enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sfi->sficonf.block_oversize_enable = FALSE;
+				cur_sfi->sficonf.block_oversize_enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -276,9 +277,9 @@ int parse_stream_filter_table(xmlNode *node,
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				sfi_table->sfi_ptr->enable = TRUE;
+				sfi_table->sfi_ptr->enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				sfi_table->sfi_ptr->enable = FALSE;
+				sfi_table->sfi_ptr->enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_SUCCESS;
@@ -472,9 +473,9 @@ int parse_parameters(xmlNode *node, struct tsn_qci_psfp_sgi_conf *sgi_conf,
 				goto out;
 
 			if (strcmp(ele_val, "open") == 0) {
-				(entry + list_index)->gate_state = TRUE;
+				(entry + list_index)->gate_state = true;
 			} else if (strcmp(ele_val, "closed") == 0) {
-				(entry + list_index)->gate_state = FALSE;
+				(entry + list_index)->gate_state = false;
 			} else {
 				rc = EXIT_FAILURE;
 				sprintf(err_msg,
@@ -749,9 +750,9 @@ pare_loop:
 			if (rc != EXIT_SUCCESS)
 				goto out;
 			if (strcmp(ele_val, "open") == 0) {
-				cur_sgi_ptr->sgiconf.admin.gate_states = TRUE;
+				cur_sgi_ptr->sgiconf.admin.gate_states = true;
 			} else if (strcmp(ele_val, "closed") == 0) {
-				cur_sgi_ptr->sgiconf.admin.gate_states = FALSE;
+				cur_sgi_ptr->sgiconf.admin.gate_states = false;
 			} else {
 				rc = EXIT_FAILURE;
 				sprintf(err_msg, "unknown '%s' in '%s'!",
@@ -833,9 +834,9 @@ pare_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sgi_ptr->sgiconf.config_change = TRUE;
+				cur_sgi_ptr->sgiconf.config_change = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sgi_ptr->sgiconf.config_change = FALSE;
+				cur_sgi_ptr->sgiconf.config_change = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -848,9 +849,9 @@ pare_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sgi_ptr->sgiconf.block_invalid_rx_enable = TRUE;
+				cur_sgi_ptr->sgiconf.block_invalid_rx_enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sgi_ptr->sgiconf.block_invalid_rx_enable = FALSE;
+				cur_sgi_ptr->sgiconf.block_invalid_rx_enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -863,9 +864,9 @@ pare_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sgi_ptr->sgiconf.block_invalid_rx = TRUE;
+				cur_sgi_ptr->sgiconf.block_invalid_rx = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sgi_ptr->sgiconf.block_invalid_rx = FALSE;
+				cur_sgi_ptr->sgiconf.block_invalid_rx = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -878,9 +879,9 @@ pare_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sgi_ptr->sgiconf.block_octets_exceeded_enable = TRUE;
+				cur_sgi_ptr->sgiconf.block_octets_exceeded_enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sgi_ptr->sgiconf.block_octets_exceeded_enable = FALSE;
+				cur_sgi_ptr->sgiconf.block_octets_exceeded_enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -893,9 +894,9 @@ pare_loop:
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_sgi_ptr->sgiconf.block_octets_exceeded = TRUE;
+				cur_sgi_ptr->sgiconf.block_octets_exceeded = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_sgi_ptr->sgiconf.block_octets_exceeded = FALSE;
+				cur_sgi_ptr->sgiconf.block_octets_exceeded = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -1027,9 +1028,9 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				goto out;
 
 			if (strcmp(ele_val, "true") == 0) {
-				cur_fmi_ptr->enable = TRUE;
+				cur_fmi_ptr->enable = true;
 			} else if (strcmp(ele_val, "false") == 0) {
-				cur_fmi_ptr->enable = FALSE;
+				cur_fmi_ptr->enable = false;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_SUCCESS;
@@ -1103,9 +1104,9 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				goto out;
 
 			if (strcmp(ele_val, "zero") == 0) {
-				cur_fmi_ptr->fmiconf.cf = FALSE;
+				cur_fmi_ptr->fmiconf.cf = false;
 			} else if (strcmp(ele_val, "one") == 0) {
-				cur_fmi_ptr->fmiconf.cf = TRUE;
+				cur_fmi_ptr->fmiconf.cf = true;
 			} else {
 				sprintf(err_msg,
 					"Invalid '%s' in '%s'!",
@@ -1120,10 +1121,10 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				goto out;
 
 			if (strcmp(ele_val, "color-blind") == 0) {
-				cur_fmi_ptr->fmiconf.cm = FALSE;
+				cur_fmi_ptr->fmiconf.cm = false;
 			} else if (strcmp(ele_val,
 					  "color-aware") == 0) {
-				cur_fmi_ptr->fmiconf.cm = TRUE;
+				cur_fmi_ptr->fmiconf.cm = true;
 			} else {
 				sprintf(err_msg,
 					"Invalid '%s' in '%s'!",
@@ -1138,9 +1139,9 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				goto out;
 
 			if (strcmp(ele_val, "false") == 0) {
-				cur_fmi_ptr->fmiconf.drop_on_yellow = FALSE;
+				cur_fmi_ptr->fmiconf.drop_on_yellow = false;
 			} else if (strcmp(ele_val, "true") == 0) {
-				cur_fmi_ptr->fmiconf.drop_on_yellow = TRUE;
+				cur_fmi_ptr->fmiconf.drop_on_yellow = true;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
@@ -1153,9 +1154,9 @@ int parse_fm_table(xmlNode *node, struct std_qci_psfp_fmi_table *fmi_table,
 				goto out;
 
 			if (strcmp(ele_val, "false") == 0) {
-				cur_fmi_ptr->fmiconf.mark_red_enable = FALSE;
+				cur_fmi_ptr->fmiconf.mark_red_enable = false;
 			} else if (strcmp(ele_val, "true") == 0) {
-				cur_fmi_ptr->fmiconf.mark_red_enable = TRUE;
+				cur_fmi_ptr->fmiconf.mark_red_enable = true;
 			} else {
 				prt_err_bool(err_msg, content, node_path);
 				rc = EXIT_FAILURE;
